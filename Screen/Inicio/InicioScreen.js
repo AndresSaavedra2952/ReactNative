@@ -25,7 +25,7 @@ export default function InicioScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.headerButton, styles.registerButton]} 
-            onPress={() => navigation.navigate('TipoUsuario')}
+            onPress={() => navigation.navigate('Register')}
           >
             <Text style={[styles.headerButtonText, styles.registerButtonText]}>Registrar</Text>
           </TouchableOpacity>

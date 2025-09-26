@@ -8,27 +8,72 @@ import {
   ScrollView,
   Alert,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import api from "../../src/service/conexion";
 
 export default function RegisterScreen({ navigation }) {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [rol, setRol] = useState("user");
   const [password, setPassword] = useState("");
+  const [fechaNacimiento, setFechaNacimiento] = useState("");
+  const [tipoDocumento, setTipoDocumento] = useState("");
+  const [numeroDocumento, setNumeroDocumento] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    if (!nombre || !apellido || !email || !telefono || !password) {
+  const handleRegister = async () => {
+    if (!nombre || !apellido || !email || !telefono || !password || !fechaNacimiento || !tipoDocumento || !numeroDocumento || !direccion) {
       Alert.alert("Error", "Todos los campos son obligatorios");
       return;
     }
 
-    console.log({ nombre, apellido, email, telefono, rol, password });
-    Alert.alert("✅ Éxito", "Usuario registrado correctamente");
-    navigation.replace("Login");
+    setLoading(true);
+
+    const pacienteData = {
+      nombre,
+      apellido,
+      email,
+      telefono,
+      password,
+      fecha_nacimiento: fechaNacimiento,
+      tipo_documento: tipoDocumento,
+      numero_documento: numeroDocumento,
+      direccion,
+      activo: 1
+    };
+
+    try {
+      console.log("Enviando datos del paciente:", pacienteData);
+      
+      // Usar endpoint público para registro de pacientes (sin autenticación)
+      const response = await api.post('/register/paciente', pacienteData);
+      
+      if (response.data) {
+        Alert.alert("✅ Éxito", "Paciente registrado correctamente en la base de datos");
+        navigation.replace("Login");
+      } else {
+        Alert.alert("❌ Error", "Error al registrar el paciente");
+      }
+    } catch (error) {
+      console.error("Error al registrar paciente:", error);
+      
+      if (error.response?.status === 401) {
+        Alert.alert("❌ Error", "El endpoint requiere autenticación. Necesitamos crear un endpoint público para registro de pacientes.");
+      } else if (error.response?.status === 422) {
+        Alert.alert("❌ Error", "Datos inválidos: " + (error.response.data?.message || "Verifica los campos"));
+      } else if (error.response?.status === 500) {
+        Alert.alert("❌ Error", "Error del servidor. Verifica que el backend esté funcionando.");
+      } else {
+        Alert.alert("❌ Error", "Error inesperado: " + (error.message || "Error de conexión"));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,7 +90,8 @@ export default function RegisterScreen({ navigation }) {
         </TouchableOpacity>
         
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.heading}>Crear Cuenta</Text>
+          <Text style={styles.heading}>Registro de Paciente</Text>
+          <Text style={styles.subheading}>Completa tus datos para crear tu cuenta</Text>
 
         <View style={styles.form}>
           <TextInput
@@ -80,10 +126,33 @@ export default function RegisterScreen({ navigation }) {
           />
           <TextInput
             style={styles.input}
-            placeholder="Rol (admin o user)"
+            placeholder="Fecha de nacimiento (YYYY-MM-DD)"
             placeholderTextColor="#888"
-            value={rol}
-            onChangeText={setRol}
+            value={fechaNacimiento}
+            onChangeText={setFechaNacimiento}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Tipo de documento (CC, TI, CE)"
+            placeholderTextColor="#888"
+            value={tipoDocumento}
+            onChangeText={setTipoDocumento}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Número de documento"
+            placeholderTextColor="#888"
+            value={numeroDocumento}
+            onChangeText={setNumeroDocumento}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Dirección"
+            placeholderTextColor="#888"
+            multiline
+            numberOfLines={2}
+            value={direccion}
+            onChangeText={setDireccion}
           />
           <TextInput
             style={styles.input}
@@ -94,12 +163,16 @@ export default function RegisterScreen({ navigation }) {
             onChangeText={setPassword}
           />
 
-          <TouchableOpacity onPress={handleRegister} activeOpacity={0.8}>
+          <TouchableOpacity onPress={handleRegister} activeOpacity={0.8} disabled={loading}>
             <LinearGradient
               colors={["#4facfe", "#00f2fe"]}
-              style={styles.registerButton}
+              style={[styles.registerButton, loading && styles.registerButtonDisabled]}
             >
-              <Text style={styles.registerButtonText}>Registrar</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.registerButtonText}>Registrar</Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -138,6 +211,12 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontSize: 32,
     color: "#007aff",
+    marginBottom: 10,
+  },
+  subheading: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#666",
     marginBottom: 30,
   },
   form: {
@@ -166,6 +245,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  registerButtonDisabled: {
+    opacity: 0.6,
   },
   registerButtonText: {
     color: "#fff",

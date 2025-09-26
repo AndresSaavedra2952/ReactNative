@@ -9,15 +9,17 @@ import {
   Alert,
   SafeAreaView,
   ActivityIndicator,
+  Picker,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { loginUser } from "../../src/service/AuthService";
+import { useAuth } from "../../src/context/AuthContext";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -27,20 +29,17 @@ export default function LoginScreen({ navigation }) {
 
     setLoading(true);
     try {
-      const result = await loginUser(email, password);
+      const result = await login(email, password);
       
       if (result.success) {
-        Alert.alert("✅ Éxito", "Inicio de sesión exitoso", [
-          {
-            text: "OK",
-            onPress: () => navigation.navigate("Dashboard")
-          }
-        ]);
+        Alert.alert("✅ Éxito", `Bienvenido ${result.user.nombre}`);
+        // La navegación se maneja automáticamente por el AuthContext
+        // No necesitamos navegar manualmente aquí
       } else {
         Alert.alert("❌ Error", result.message || "Error al iniciar sesión");
       }
     } catch (error) {
-      console.error("Error en el login:", error);
+      console.error("Error en login:", error);
       Alert.alert("❌ Error", "Error inesperado al iniciar sesión");
     } finally {
       setLoading(false);
@@ -89,10 +88,10 @@ export default function LoginScreen({ navigation }) {
           <TouchableOpacity onPress={handleLogin} activeOpacity={0.8} disabled={loading}>
             <LinearGradient
               colors={["#4facfe", "#00f2fe"]}
-              style={styles.loginButton}
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <Text style={styles.loginButtonText}>Ingresar</Text>
               )}
@@ -100,7 +99,7 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate("TipoUsuario")}>
+        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
           <Text style={styles.registerLink}>
             ¿No tienes cuenta?{" "}
             <Text style={{ color: "#007aff", fontWeight: "bold" }}>
@@ -177,6 +176,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
   loginButtonText: {
     color: "#fff",

@@ -6,7 +6,7 @@ export const registerUser = async (userData) => {
   try {
     console.log('Datos a enviar:', userData);
     
-    // Mapear los datos del frontend al formato esperado por el backend
+    // Mapear los datos del frontend al formato esperado por el backend 
     const mappedData = {
       name: userData.nombre,
       email: userData.email,
@@ -146,4 +146,5 @@ export const isAuthenticated = async () => {
     };
   }
 };
+
 

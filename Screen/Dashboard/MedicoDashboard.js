@@ -1,33 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../../src/context/AuthContext";
 
 export default function MedicoDashboard({ navigation }) {
-  const [userData, setUserData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      const storedData = await AsyncStorage.getItem('userData');
-      if (storedData) {
-        setUserData(JSON.parse(storedData));
-      }
-    } catch (error) {
-      console.error("Error loading user data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    console.log("Botón de logout presionado");
     Alert.alert(
       "Cerrar Sesión",
       "¿Estás seguro de que quieres cerrar sesión?",
@@ -37,105 +26,158 @@ export default function MedicoDashboard({ navigation }) {
           text: "Cerrar Sesión", 
           style: "destructive",
           onPress: async () => {
-            try {
-              console.log("Iniciando logout...");
-              await AsyncStorage.removeItem('userToken');
-              await AsyncStorage.removeItem('userData');
-              console.log("Datos eliminados del storage");
-              
-              navigation.navigate("Inicio");
-              console.log("Navegando a Inicio");
-            } catch (error) {
-              console.error("Error en logout:", error);
-              Alert.alert("Error", "Error al cerrar sesión");
-            }
+            await logout();
+            navigation.replace("Login");
           }
         }
       ]
     );
   };
 
-  const menuItems = [
+  const medicoActions = [
     {
-      title: "Mi Agenda",
-      icon: "calendar-outline",
-      color: "#4facfe",
-      screen: "Citas"
+      title: "Mis Citas",
+      description: "Ver y gestionar mis citas",
+      icon: "calendar",
+      color: ["#4facfe", "#00f2fe"],
+      onPress: () => navigation.navigate("MisCitas")
     },
     {
-      title: "Mis Pacientes",
-      icon: "people-outline",
-      color: "#00f2fe",
-      screen: "Pacientes"
+      title: "Pacientes",
+      description: "Ver mis pacientes",
+      icon: "people",
+      color: ["#43e97b", "#38f9d7"],
+      onPress: () => navigation.navigate("MisPacientes")
     },
     {
-      title: "Mi Perfil",
-      icon: "person-outline",
-      color: "#4facfe",
-      screen: "Perfil"
+      title: "Agenda",
+      description: "Mi agenda médica",
+      icon: "time",
+      color: ["#fa709a", "#fee140"],
+      onPress: () => navigation.navigate("Agenda")
     },
     {
-      title: "Consultorios",
-      icon: "business-outline",
-      color: "#00f2fe",
-      screen: "Consultorios"
+      title: "Perfil",
+      description: "Actualizar mi información",
+      icon: "person",
+      color: ["#a8edea", "#fed6e3"],
+      onPress: () => navigation.navigate("Perfil")
     },
     {
-      title: "Especialidades",
-      icon: "medical-outline",
-      color: "#4facfe",
-      screen: "Especialidades"
+      title: "Consultorio",
+      description: "Información de mi consultorio",
+      icon: "home",
+      color: ["#ffecd2", "#fcb69f"],
+      onPress: () => navigation.navigate("MiConsultorio")
     },
     {
       title: "Reportes",
-      icon: "bar-chart-outline",
-      color: "#00f2fe",
-      screen: "Perfil" // Temporarily redirect to Perfil
+      description: "Estadísticas y reportes",
+      icon: "bar-chart",
+      color: ["#667eea", "#764ba2"],
+      onPress: () => navigation.navigate("Reportes")
     }
   ];
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007aff" />
-        <Text style={styles.loadingText}>Cargando dashboard...</Text>
-      </View>
-    );
-  }
-
   return (
-    <LinearGradient colors={["#e0f7ff", "#f9fbfd"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#43e97b", "#38f9d7"]} style={styles.container}>
       <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#43e97b" />
+        
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.title}>Panel del Médico</Text>
-              <Text style={styles.subtitle}>Bienvenido, {userData?.name || "Médico"}</Text>
+          <View style={styles.headerContent}>
+            <View style={styles.userInfo}>
+              <Text style={styles.welcomeText}>Bienvenido, Doctor</Text>
+              <Text style={styles.userName}>Dr. {user?.nombre} {user?.apellido}</Text>
+              <Text style={styles.specialty}>Especialidad: {user?.especialidad?.nombre || "General"}</Text>
             </View>
             <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <Ionicons name="log-out-outline" size={24} color="#007aff" />
+              <Ionicons name="log-out-outline" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <ScrollView style={styles.content}>
-          <View style={styles.menuGrid}>
-            {menuItems.map((item, index) => (
+        {/* Content */}
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <Text style={styles.sectionTitle}>Panel Médico</Text>
+          <Text style={styles.sectionSubtitle}>
+            Gestiona tu práctica médica
+          </Text>
+
+          <View style={styles.actionsGrid}>
+            {medicoActions.map((action, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.menuItem}
-                onPress={() => navigation.navigate(item.screen)}
+                style={styles.actionCard}
+                onPress={action.onPress}
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={[item.color, item.color + "80"]}
-                  style={styles.menuItemGradient}
+                  colors={action.color}
+                  style={styles.actionGradient}
                 >
-                  <Ionicons name={item.icon} size={30} color="#fff" />
-                  <Text style={styles.menuItemText}>{item.title}</Text>
+                  <Ionicons name={action.icon} size={40} color="#fff" />
+                  <Text style={styles.actionTitle}>{action.title}</Text>
+                  <Text style={styles.actionDescription}>{action.description}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Today's Schedule */}
+          <View style={styles.scheduleSection}>
+            <Text style={styles.scheduleTitle}>Citas de Hoy</Text>
+            <View style={styles.scheduleCard}>
+              <View style={styles.scheduleItem}>
+                <View style={styles.timeSlot}>
+                  <Text style={styles.timeText}>09:00</Text>
+                </View>
+                <View style={styles.patientInfo}>
+                  <Text style={styles.patientName}>María González</Text>
+                  <Text style={styles.patientReason}>Consulta general</Text>
+                </View>
+                <TouchableOpacity style={styles.statusButton}>
+                  <Text style={styles.statusText}>Confirmada</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.scheduleItem}>
+                <View style={styles.timeSlot}>
+                  <Text style={styles.timeText}>10:30</Text>
+                </View>
+                <View style={styles.patientInfo}>
+                  <Text style={styles.patientName}>Carlos López</Text>
+                  <Text style={styles.patientReason}>Control</Text>
+                </View>
+                <TouchableOpacity style={styles.statusButton}>
+                  <Text style={styles.statusText}>Pendiente</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Quick Stats */}
+          <View style={styles.statsSection}>
+            <Text style={styles.statsTitle}>Estadísticas del Día</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>5</Text>
+                <Text style={styles.statLabel}>Citas Hoy</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>3</Text>
+                <Text style={styles.statLabel}>Completadas</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>2</Text>
+                <Text style={styles.statLabel}>Pendientes</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>0</Text>
+                <Text style={styles.statLabel}>Canceladas</Text>
+              </View>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -147,74 +189,193 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f9fbfd',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 30,
+    paddingVertical: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1976D2',
-    marginBottom: 5,
+  userInfo: {
+    flex: 1,
   },
-  subtitle: {
+  welcomeText: {
     fontSize: 16,
-    color: '#666',
+    color: "#fff",
+    opacity: 0.9,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 2,
+  },
+  specialty: {
+    fontSize: 14,
+    color: "#fff",
+    opacity: 0.8,
+    marginTop: 2,
   },
   logoutButton: {
-    padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 20,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  menuGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  sectionTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 8,
   },
-  menuItem: {
-    width: '48%',
-    marginBottom: 20,
-    borderRadius: 15,
-    overflow: 'hidden',
-  },
-  menuItemGradient: {
-    padding: 20,
-    alignItems: 'center',
-    minHeight: 120,
-    justifyContent: 'center',
-  },
-  menuItemText: {
-    color: '#fff',
+  sectionSubtitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: "#fff",
+    textAlign: "center",
+    opacity: 0.8,
+    marginBottom: 30,
+  },
+  actionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 30,
+  },
+  actionCard: {
+    width: "48%",
+    marginBottom: 15,
+    borderRadius: 15,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  actionGradient: {
+    padding: 20,
+    alignItems: "center",
+    minHeight: 140,
+    justifyContent: "center",
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#fff",
     marginTop: 10,
-    textAlign: 'center',
+    marginBottom: 5,
+    textAlign: "center",
+  },
+  actionDescription: {
+    fontSize: 12,
+    color: "#fff",
+    textAlign: "center",
+    opacity: 0.9,
+    lineHeight: 16,
+  },
+  scheduleSection: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+  },
+  scheduleTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 15,
+  },
+  scheduleCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 10,
+    padding: 15,
+  },
+  scheduleItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  timeSlot: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 15,
+  },
+  timeText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  patientInfo: {
+    flex: 1,
+  },
+  patientName: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  patientReason: {
+    color: "#fff",
+    opacity: 0.8,
+    fontSize: 14,
+  },
+  statusButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  statusText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  statsSection: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 30,
+  },
+  statsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  statCard: {
+    width: "48%",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 10,
+    padding: 15,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#fff",
+    opacity: 0.8,
+    marginTop: 5,
   },
 });
-

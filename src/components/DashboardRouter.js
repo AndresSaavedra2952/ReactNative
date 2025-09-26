@@ -1,59 +1,158 @@
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import PacienteDashboard from '../../Screen/Dashboard/PacienteDashboard';
-import MedicoDashboard from '../../Screen/Dashboard/MedicoDashboard';
-import AdminDashboard from '../../Screen/Dashboard/AdminDashboard';
+import React from "react";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useAuth } from "../context/AuthContext";
 
-export default function DashboardRouter({ navigation }) {
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+// Dashboards
+import AdminDashboard from "../../Screen/Dashboard/AdminDashboard";
+import MedicoDashboard from "../../Screen/Dashboard/MedicoDashboard";
+import PacienteDashboard from "../../Screen/Dashboard/PacienteDashboard";
 
-  useEffect(() => {
-    loadUserRole();
-  }, []);
+// Screens del sistema
+import CitasScreen from "../../Screen/Citas/CitasScreen";
+import PacientesScreen from "../../Screen/Pacientes/PacientesScreen";
+import MedicosScreen from "../../Screen/Medicos/MedicosScreen";
+import EspecialidadesScreen from "../../Screen/Especialidades/EspecialidadesScreen";
+import ConsultoriosScreen from "../../Screen/Consultorios/ConsultoriosScreen";
+import EpsScreen from "../../Screen/Eps/EpsScreen";
+import PerfilScreen from "../../Screen/Perfil/PerfilScreen";
 
-  const loadUserRole = async () => {
-    try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const parsedData = JSON.parse(userData);
-        setUserRole(parsedData.role);
-      } else {
-        // Si no hay datos de usuario, redirigir al login
-        navigation.navigate('Login');
-      }
-    } catch (error) {
-      console.error('Error cargando rol de usuario:', error);
-      navigation.navigate('Login');
-    } finally    {
-      setLoading(false);
+const Stack = createNativeStackNavigator();
+
+export default function DashboardRouter() {
+  const { userType } = useAuth();
+
+  // Función para obtener el dashboard según el tipo de usuario
+  const getDashboardComponent = () => {
+    switch (userType) {
+      case 'admin':
+        return AdminDashboard;
+      case 'medico':
+        return MedicoDashboard;
+      case 'paciente':
+        return PacienteDashboard;
+      default:
+        return PacienteDashboard; // Por defecto
     }
   };
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={{ marginTop: 10, fontSize: 16, color: '#666' }}>
-          Cargando dashboard...
-        </Text>
-      </View>
-    );
-  }
+  const DashboardComponent = getDashboardComponent();
 
-  // Renderizar el dashboard según el rol del usuario
-  switch (userRole) {
-    case 'paciente':
-      return <PacienteDashboard navigation={navigation} />;
-    case 'medico':
-      return <MedicoDashboard navigation={navigation} />;
-    case 'admin':
-      return <AdminDashboard navigation={navigation} />;
-    default:
-      // Si el rol no es válido, redirigir al login
-      navigation.navigate('Login');
-      return null;
-  }
+  return (
+    <Stack.Navigator
+      initialRouteName="Dashboard"
+      screenOptions={{
+        headerShown: false
+      }}
+    >
+      {/* Dashboard principal según el tipo de usuario */}
+      <Stack.Screen 
+        name="Dashboard" 
+        component={DashboardComponent}
+        options={{
+          title: userType === 'admin' ? 'Panel Admin' : 
+                 userType === 'medico' ? 'Panel Médico' : 'Panel Paciente'
+        }}
+      />
+
+      {/* Pantallas comunes para todos los usuarios */}
+      <Stack.Screen 
+        name="Citas" 
+        component={CitasScreen}
+        options={{ title: "Citas Médicas" }}
+      />
+      
+      <Stack.Screen 
+        name="Pacientes" 
+        component={PacientesScreen}
+        options={{ title: "Pacientes" }}
+      />
+      
+      <Stack.Screen 
+        name="Medicos" 
+        component={MedicosScreen}
+        options={{ title: "Médicos" }}
+      />
+      
+      <Stack.Screen 
+        name="Especialidades" 
+        component={EspecialidadesScreen}
+        options={{ title: "Especialidades" }}
+      />
+      
+      <Stack.Screen 
+        name="Consultorios" 
+        component={ConsultoriosScreen}
+        options={{ title: "Consultorios" }}
+      />
+      
+      <Stack.Screen 
+        name="Eps" 
+        component={EpsScreen}
+        options={{ title: "EPS" }}
+      />
+      
+      <Stack.Screen 
+        name="Perfil" 
+        component={PerfilScreen}
+        options={{ title: "Mi Perfil" }}
+      />
+
+      {/* Pantallas específicas para médicos */}
+      {userType === 'medico' && (
+        <>
+          <Stack.Screen 
+            name="MisCitas" 
+            component={CitasScreen}
+            options={{ title: "Mis Citas" }}
+          />
+          <Stack.Screen 
+            name="MisPacientes" 
+            component={PacientesScreen}
+            options={{ title: "Mis Pacientes" }}
+          />
+          <Stack.Screen 
+            name="Agenda" 
+            component={CitasScreen}
+            options={{ title: "Mi Agenda" }}
+          />
+          <Stack.Screen 
+            name="MiConsultorio" 
+            component={ConsultoriosScreen}
+            options={{ title: "Mi Consultorio" }}
+          />
+          <Stack.Screen 
+            name="Reportes" 
+            component={CitasScreen}
+            options={{ title: "Reportes" }}
+          />
+        </>
+      )}
+
+      {/* Pantallas específicas para pacientes */}
+      {userType === 'paciente' && (
+        <>
+          <Stack.Screen 
+            name="AgendarCita" 
+            component={CitasScreen}
+            options={{ title: "Agendar Cita" }}
+          />
+          <Stack.Screen 
+            name="MisCitas" 
+            component={CitasScreen}
+            options={{ title: "Mis Citas" }}
+          />
+          <Stack.Screen 
+            name="Historial" 
+            component={CitasScreen}
+            options={{ title: "Historial Médico" }}
+          />
+          <Stack.Screen 
+            name="Emergencias" 
+            component={CitasScreen}
+            options={{ title: "Emergencias" }}
+          />
+        </>
+      )}
+    </Stack.Navigator>
+  );
 }
-

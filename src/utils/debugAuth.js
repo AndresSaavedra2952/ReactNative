@@ -37,3 +37,4 @@ export const clearAuth = async () => {
     console.error('Error al limpiar autenticación:', error);
   }
 };
+

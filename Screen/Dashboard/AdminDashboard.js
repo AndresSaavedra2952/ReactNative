@@ -1,33 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../../src/context/AuthContext";
 
 export default function AdminDashboard({ navigation }) {
-  const [userData, setUserData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      const storedData = await AsyncStorage.getItem('userData');
-      if (storedData) {
-        setUserData(JSON.parse(storedData));
-      }
-    } catch (error) {
-      console.error("Error loading user data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    console.log("Botón de logout presionado");
     Alert.alert(
       "Cerrar Sesión",
       "¿Estás seguro de que quieres cerrar sesión?",
@@ -37,123 +26,125 @@ export default function AdminDashboard({ navigation }) {
           text: "Cerrar Sesión", 
           style: "destructive",
           onPress: async () => {
-            try {
-              console.log("Iniciando logout...");
-              await AsyncStorage.removeItem('userToken');
-              await AsyncStorage.removeItem('userData');
-              console.log("Datos eliminados del storage");
-              
-              navigation.navigate("Inicio");
-              console.log("Navegando a Inicio");
-            } catch (error) {
-              console.error("Error en logout:", error);
-              Alert.alert("Error", "Error al cerrar sesión");
-            }
+            await logout();
+            navigation.replace("Login");
           }
         }
       ]
     );
   };
 
-  const menuItems = [
+  const adminActions = [
     {
-      title: "Gestión de Usuarios",
-      icon: "people-outline",
-      color: "#4facfe",
-      screen: "Pacientes" // Temporarily redirect to Pacientes
+      title: "Gestión de Médicos",
+      description: "Crear, editar y eliminar médicos",
+      icon: "medical",
+      color: ["#4facfe", "#00f2fe"],
+      onPress: () => navigation.navigate("Medicos")
     },
     {
       title: "Gestión de Pacientes",
-      icon: "person-add-outline",
-      color: "#00f2fe",
-      screen: "Pacientes"
-    },
-    {
-      title: "Gestión de Médicos",
-      icon: "medkit-outline",
-      color: "#4facfe",
-      screen: "Medicos"
-    },
-    {
-      title: "Gestión de Citas",
-      icon: "calendar-outline",
-      color: "#00f2fe",
-      screen: "Citas"
+      description: "Administrar pacientes del sistema",
+      icon: "people",
+      color: ["#43e97b", "#38f9d7"],
+      onPress: () => navigation.navigate("Pacientes")
     },
     {
       title: "Especialidades",
-      icon: "library-outline",
-      color: "#4facfe",
-      screen: "Especialidades"
-    },
-    {
-      title: "Consultorios",
-      icon: "business-outline",
-      color: "#00f2fe",
-      screen: "Consultorios"
+      description: "Gestionar especialidades médicas",
+      icon: "library",
+      color: ["#fa709a", "#fee140"],
+      onPress: () => navigation.navigate("Especialidades")
     },
     {
       title: "EPS",
-      icon: "shield-outline",
-      color: "#4facfe",
-      screen: "Eps"
+      description: "Administrar entidades de salud",
+      icon: "business",
+      color: ["#a8edea", "#fed6e3"],
+      onPress: () => navigation.navigate("Eps")
     },
     {
-      title: "Reportes",
-      icon: "bar-chart-outline",
-      color: "#00f2fe",
-      screen: "Perfil" // Temporarily redirect to Perfil
+      title: "Consultorios",
+      description: "Gestionar consultorios médicos",
+      icon: "home",
+      color: ["#ffecd2", "#fcb69f"],
+      onPress: () => navigation.navigate("Consultorios")
     },
     {
-      title: "Configuración",
-      icon: "settings-outline",
-      color: "#4facfe",
-      screen: "Perfil" // Temporarily redirect to Perfil
+      title: "Citas Médicas",
+      description: "Administrar todas las citas",
+      icon: "calendar",
+      color: ["#667eea", "#764ba2"],
+      onPress: () => navigation.navigate("Citas")
     }
   ];
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007aff" />
-        <Text style={styles.loadingText}>Cargando dashboard...</Text>
-      </View>
-    );
-  }
-
   return (
-    <LinearGradient colors={["#e0f7ff", "#f9fbfd"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
       <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#667eea" />
+        
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.title}>Panel de Administración</Text>
-              <Text style={styles.subtitle}>Bienvenido, {userData?.name || "Administrador"}</Text>
+          <View style={styles.headerContent}>
+            <View style={styles.userInfo}>
+              <Text style={styles.welcomeText}>Bienvenido, Administrador</Text>
+              <Text style={styles.userName}>{user?.nombre} {user?.apellido}</Text>
             </View>
             <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <Ionicons name="log-out-outline" size={24} color="#007aff" />
+              <Ionicons name="log-out-outline" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <ScrollView style={styles.content}>
-          <View style={styles.menuGrid}>
-            {menuItems.map((item, index) => (
+        {/* Content */}
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <Text style={styles.sectionTitle}>Panel de Administración</Text>
+          <Text style={styles.sectionSubtitle}>
+            Gestiona todos los aspectos del sistema médico
+          </Text>
+
+          <View style={styles.actionsGrid}>
+            {adminActions.map((action, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.menuItem}
-                onPress={() => navigation.navigate(item.screen)}
+                style={styles.actionCard}
+                onPress={action.onPress}
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={[item.color, item.color + "80"]}
-                  style={styles.menuItemGradient}
+                  colors={action.color}
+                  style={styles.actionGradient}
                 >
-                  <Ionicons name={item.icon} size={30} color="#fff" />
-                  <Text style={styles.menuItemText}>{item.title}</Text>
+                  <Ionicons name={action.icon} size={40} color="#fff" />
+                  <Text style={styles.actionTitle}>{action.title}</Text>
+                  <Text style={styles.actionDescription}>{action.description}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Stats Section */}
+          <View style={styles.statsSection}>
+            <Text style={styles.statsTitle}>Estadísticas Rápidas</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>--</Text>
+                <Text style={styles.statLabel}>Médicos</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>--</Text>
+                <Text style={styles.statLabel}>Pacientes</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>--</Text>
+                <Text style={styles.statLabel}>Citas Hoy</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>--</Text>
+                <Text style={styles.statLabel}>Especialidades</Text>
+              </View>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -165,74 +156,127 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f9fbfd',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 30,
+    paddingVertical: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1976D2',
-    marginBottom: 5,
+  userInfo: {
+    flex: 1,
   },
-  subtitle: {
+  welcomeText: {
     fontSize: 16,
-    color: '#666',
+    color: "#fff",
+    opacity: 0.9,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 2,
   },
   logoutButton: {
-    padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 20,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  menuGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  sectionTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 8,
   },
-  menuItem: {
-    width: '48%',
-    marginBottom: 20,
-    borderRadius: 15,
-    overflow: 'hidden',
-  },
-  menuItemGradient: {
-    padding: 20,
-    alignItems: 'center',
-    minHeight: 120,
-    justifyContent: 'center',
-  },
-  menuItemText: {
-    color: '#fff',
+  sectionSubtitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: "#fff",
+    textAlign: "center",
+    opacity: 0.8,
+    marginBottom: 30,
+  },
+  actionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 30,
+  },
+  actionCard: {
+    width: "48%",
+    marginBottom: 15,
+    borderRadius: 15,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  actionGradient: {
+    padding: 20,
+    alignItems: "center",
+    minHeight: 140,
+    justifyContent: "center",
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#fff",
     marginTop: 10,
-    textAlign: 'center',
+    marginBottom: 5,
+    textAlign: "center",
+  },
+  actionDescription: {
+    fontSize: 12,
+    color: "#fff",
+    textAlign: "center",
+    opacity: 0.9,
+    lineHeight: 16,
+  },
+  statsSection: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 30,
+  },
+  statsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  statCard: {
+    width: "48%",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 10,
+    padding: 15,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#fff",
+    opacity: 0.8,
+    marginTop: 5,
   },
 });
-
