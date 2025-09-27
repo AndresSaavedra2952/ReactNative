@@ -15,12 +15,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { medicosService, adminService } from '../../src/service/ApiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CrearMedicoModal from '../../src/components/CrearMedicoModal';
+import EditarMedicoModal from '../../src/components/EditarMedicoModal';
 
 export default function MedicosScreen({ navigation }) {
   const [medicos, setMedicos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [showCrearModal, setShowCrearModal] = useState(false);
+  const [showEditarModal, setShowEditarModal] = useState(false);
+  const [medicoEditando, setMedicoEditando] = useState(null);
 
   useEffect(() => {
     loadUserRole();
@@ -87,111 +92,7 @@ export default function MedicosScreen({ navigation }) {
 
   const handleAddMedico = () => {
     if (userRole === 'admin') {
-      // Pedir todos los datos necesarios
-      Alert.prompt(
-        'Agregar Médico',
-        'Ingresa el nombre del médico:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Siguiente', 
-            onPress: async (nombre) => {
-              if (nombre && nombre.trim()) {
-                // Pedir apellido
-                Alert.prompt(
-                  'Agregar Médico',
-                  'Ingresa el apellido del médico:',
-                  [
-                    { text: 'Cancelar', style: 'cancel' },
-                    { 
-                      text: 'Siguiente', 
-                      onPress: async (apellido) => {
-                        if (apellido && apellido.trim()) {
-                          // Pedir email
-                          Alert.prompt(
-                            'Agregar Médico',
-                            'Ingresa el email del médico:',
-                            [
-                              { text: 'Cancelar', style: 'cancel' },
-                              { 
-                                text: 'Siguiente', 
-                                onPress: async (email) => {
-                                  if (email && email.trim()) {
-                                    // Pedir contraseña
-                                    Alert.prompt(
-                                      'Agregar Médico',
-                                      'Ingresa la contraseña del médico:',
-                                      [
-                                        { text: 'Cancelar', style: 'cancel' },
-                                        { 
-                                          text: 'Siguiente', 
-                                          onPress: async (password) => {
-                                            if (password && password.trim()) {
-                                              // Pedir teléfono
-                                              Alert.prompt(
-                                                'Agregar Médico',
-                                                'Ingresa el teléfono del médico:',
-                                                [
-                                                  { text: 'Cancelar', style: 'cancel' },
-                                                  { 
-                                                    text: 'Siguiente', 
-                                                    onPress: async (telefono) => {
-                                                      if (telefono && telefono.trim()) {
-                                                        // Pedir número de licencia
-                                                        Alert.prompt(
-                                                          'Agregar Médico',
-                                                          'Ingresa el número de licencia:',
-                                                          [
-                                                            { text: 'Cancelar', style: 'cancel' },
-                                                            { 
-                                                              text: 'Crear', 
-                                                              onPress: async (numero_licencia) => {
-                                                                if (numero_licencia && numero_licencia.trim()) {
-                                                                  await createMedico({
-                                                                    nombre: nombre.trim(),
-                                                                    apellido: apellido.trim(),
-                                                                    email: email.trim(),
-                                                                    password: password.trim(),
-                                                                    telefono: telefono.trim(),
-                                                                    numero_licencia: numero_licencia.trim(),
-                                                                    especialidad_id: 1 // Por defecto
-                                                                  });
-                                                                }
-                                                              }
-                                                            }
-                                                          ],
-                                                          'plain-text'
-                                                        );
-                                                      }
-                                                    }
-                                                  }
-                                                ],
-                                                'plain-text'
-                                              );
-                                            }
-                                          }
-                                        }
-                                      ],
-                                      'plain-text'
-                                    );
-                                  }
-                                }
-                              }
-                            ],
-                            'plain-text'
-                          );
-                        }
-                      }
-                    }
-                  ],
-                  'plain-text'
-                );
-              }
-            }
-          }
-        ],
-        'plain-text'
-      );
+      setShowCrearModal(true);
     } else {
       Alert.alert('Acceso Restringido', 'Solo los administradores pueden agregar médicos');
     }
@@ -215,42 +116,19 @@ export default function MedicosScreen({ navigation }) {
 
   const handleEditMedico = (medico) => {
     if (userRole === 'admin') {
-      Alert.prompt(
-        'Editar Médico',
-        'Modifica el nombre del médico:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Guardar', 
-            onPress: async (nuevoNombre) => {
-              if (nuevoNombre && nuevoNombre.trim()) {
-                await updateMedico(medico.id, nuevoNombre.trim());
-              }
-            }
-          }
-        ],
-        'plain-text',
-        medico.nombre || medico.name
-      );
+      setMedicoEditando(medico);
+      setShowEditarModal(true);
     } else {
       Alert.alert('Acceso Restringido', 'Solo los administradores pueden editar médicos');
     }
   };
 
-  const updateMedico = async (id, nombre) => {
-    try {
-      const result = await adminService.updateMedico(id, { nombre: nombre });
-      
-      if (result.success) {
-        Alert.alert('✅ Éxito', 'Médico actualizado exitosamente');
-        loadMedicos();
-      } else {
-        Alert.alert('❌ Error', result.message || 'Error al actualizar médico');
-      }
-    } catch (error) {
-      console.error('Error actualizando médico:', error);
-      Alert.alert('❌ Error', 'Error al actualizar médico');
-    }
+  const handleMedicoCreated = () => {
+    loadMedicos();
+  };
+
+  const handleMedicoUpdated = () => {
+    loadMedicos();
   };
 
   const handleDeleteMedico = (medico) => {
@@ -408,6 +286,23 @@ export default function MedicosScreen({ navigation }) {
           )}
         </ScrollView>
       </SafeAreaView>
+      
+      {/* Modales */}
+      <CrearMedicoModal
+        visible={showCrearModal}
+        onClose={() => setShowCrearModal(false)}
+        onMedicoCreated={handleMedicoCreated}
+      />
+      
+      <EditarMedicoModal
+        visible={showEditarModal}
+        onClose={() => {
+          setShowEditarModal(false);
+          setMedicoEditando(null);
+        }}
+        medico={medicoEditando}
+        onMedicoUpdated={handleMedicoUpdated}
+      />
     </LinearGradient>
   );
 }

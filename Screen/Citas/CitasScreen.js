@@ -17,6 +17,8 @@ import { citasService, adminService } from '../../src/service/ApiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment';
 import 'moment/locale/es'; // Import Spanish locale
+import CrearCitaModal from '../../src/components/CrearCitaModal';
+import EditarCitaModal from '../../src/components/EditarCitaModal';
 
 moment.locale('es'); // Set locale to Spanish
 
@@ -26,6 +28,14 @@ export default function CitasScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [showCrearModal, setShowCrearModal] = useState(false);
+  const [showEditarModal, setShowEditarModal] = useState(false);
+  const [citaEditando, setCitaEditando] = useState(null);
+
+  // Función para asegurar que citas siempre sea un array
+  const getCitasArray = () => {
+    return Array.isArray(citas) ? citas : [];
+  };
 
   useEffect(() => {
     loadUserDataAndRole();
@@ -38,7 +48,8 @@ export default function CitasScreen({ navigation }) {
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         setUserData(parsedData);
-        setUserRole(parsedData.role);
+        console.log('Datos del usuario:', parsedData);
+        setUserRole(parsedData.tipo || parsedData.role);
       }
     } catch (error) {
       console.error("Error al cargar datos del usuario:", error);
@@ -56,14 +67,22 @@ export default function CitasScreen({ navigation }) {
         result = await citasService.getAll();
       }
       
-      if (result.success) {
+      console.log("Respuesta de citas:", result);
+      
+      if (result && result.success && Array.isArray(result.data)) {
         setCitas(result.data);
+        console.log("Citas cargadas:", result.data.length);
       } else {
-        Alert.alert("Error", result.message);
+        console.log("Error en respuesta o datos no válidos:", result);
+        setCitas([]);
+        if (result && result.message) {
+          Alert.alert("Error", result.message);
+        }
       }
       
     } catch (error) {
       console.error("Error al cargar citas:", error);
+      setCitas([]);
       Alert.alert("Error", "Error al cargar las citas");
     } finally {
       setLoading(false);
@@ -77,7 +96,20 @@ export default function CitasScreen({ navigation }) {
   };
 
   const handleViewCita = (cita) => {
-    navigation.navigate('DetalleCita', { cita });
+    setCitaEditando(cita);
+    setShowEditarModal(true);
+  };
+
+  const handleAddCita = () => {
+    setShowCrearModal(true);
+  };
+
+  const handleCitaCreated = () => {
+    loadCitas();
+  };
+
+  const handleCitaUpdated = () => {
+    loadCitas();
   };
 
   const handleConfirmCita = async (citaId) => {
@@ -142,6 +174,9 @@ export default function CitasScreen({ navigation }) {
     }
   };
 
+  // Debug: verificar el estado de citas
+  console.log("Render - citas:", citas, "tipo:", typeof citas, "es array:", Array.isArray(citas));
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -166,7 +201,7 @@ export default function CitasScreen({ navigation }) {
           <Text style={styles.headerTitle}>Mis Citas</Text>
           <TouchableOpacity 
             style={styles.addButton}
-            onPress={() => navigation.navigate('CrearCita')}
+            onPress={handleAddCita}
           >
             <Ionicons name="add" size={24} color="#1976D2" />
           </TouchableOpacity>
@@ -181,24 +216,24 @@ export default function CitasScreen({ navigation }) {
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Tus Citas Médicas</Text>
             <Text style={styles.subtitle}>
-              {citas.length} citas encontradas
+              {getCitasArray().length} citas encontradas
             </Text>
           </View>
 
-          {citas.length === 0 ? (
+          {getCitasArray().length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="calendar-outline" size={64} color="#ccc" />
               <Text style={styles.emptyText}>No tienes citas agendadas</Text>
               <TouchableOpacity 
                 style={styles.emptyButton}
-                onPress={() => navigation.navigate('CrearCita')}
+                onPress={handleAddCita}
               >
                 <Text style={styles.emptyButtonText}>Agendar Primera Cita</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.citasList}>
-              {citas.map((cita) => (
+              {getCitasArray().map((cita) => (
                 <View key={cita.id} style={styles.citaCard}>
                   <View style={styles.citaHeader}>
                     <Text style={styles.citaDoctor}>Dr. {cita.medico?.nombre || 'N/A'}</Text>
@@ -220,6 +255,12 @@ export default function CitasScreen({ navigation }) {
                   </Text>
 
                   <View style={styles.citaActions}>
+                    <TouchableOpacity 
+                      style={styles.actionButtonEdit}
+                      onPress={() => handleViewCita(cita)}
+                    >
+                      <Text style={styles.actionButtonText}>Editar</Text>
+                    </TouchableOpacity>
                     {cita.estado === 'pendiente' && (
                       <>
                         <TouchableOpacity 
@@ -251,6 +292,23 @@ export default function CitasScreen({ navigation }) {
           )}
         </ScrollView>
       </SafeAreaView>
+      
+      {/* Modales */}
+      <CrearCitaModal
+        visible={showCrearModal}
+        onClose={() => setShowCrearModal(false)}
+        onCitaCreated={handleCitaCreated}
+      />
+      
+      <EditarCitaModal
+        visible={showEditarModal}
+        onClose={() => {
+          setShowEditarModal(false);
+          setCitaEditando(null);
+        }}
+        cita={citaEditando}
+        onCitaUpdated={handleCitaUpdated}
+      />
     </LinearGradient>
   );
 }
@@ -404,6 +462,12 @@ const styles = StyleSheet.create({
   citaActions: {
     flexDirection: 'row',
     gap: 10,
+  },
+  actionButtonEdit: {
+    backgroundColor: '#1976D2',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   actionButtonConfirm: {
     backgroundColor: '#28a745',

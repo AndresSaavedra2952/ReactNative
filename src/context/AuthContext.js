@@ -55,7 +55,19 @@ export const AuthProvider = ({ children }) => {
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
         if (result.status === 'fulfilled' && result.value.data.success) {
-          const { user: userData, token, tipo: userTipo } = result.value.data.data;
+          // Verificar la estructura de la respuesta
+          const responseData = result.value.data;
+          console.log('Respuesta del backend:', responseData);
+          
+          // Intentar obtener los datos de diferentes estructuras posibles
+          const userData = responseData.data?.user || responseData.user;
+          const token = responseData.data?.token || responseData.token;
+          const userTipo = responseData.data?.tipo || responseData.tipo || ['admin', 'medico', 'paciente'][i];
+          
+          if (!userData || !token) {
+            console.log('Datos incompletos en la respuesta:', { userData, token, userTipo });
+            continue;
+          }
           
           console.log('Login exitoso:', { userTipo, userData });
           
@@ -96,15 +108,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Llamar al endpoint de logout si hay token
-      const token = await AsyncStorage.getItem('userToken');
-      if (token) {
-        await api.post('/logout');
-      }
-    } catch (error) {
-      console.error('Error en logout:', error);
-    } finally {
-      // Limpiar datos locales
+      // Solo limpiar datos locales (no hay endpoint de logout en el backend)
       await AsyncStorage.removeItem('userToken');
       await AsyncStorage.removeItem('userData');
       
@@ -112,6 +116,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setUserType(null);
       setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Error en logout:', error);
     }
   };
 

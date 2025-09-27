@@ -15,12 +15,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { epsService, adminService } from '../../src/service/ApiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CrearEpsModal from '../../src/components/CrearEpsModal';
+import EditarEpsModal from '../../src/components/EditarEpsModal';
 
 export default function EpsScreen({ navigation }) {
   const [eps, setEps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [showCrearModal, setShowCrearModal] = useState(false);
+  const [showEditarModal, setShowEditarModal] = useState(false);
+  const [epsEditando, setEpsEditando] = useState(null);
 
   useEffect(() => {
     loadUserRole();
@@ -32,7 +37,8 @@ export default function EpsScreen({ navigation }) {
       const userData = await AsyncStorage.getItem('userData');
       if (userData) {
         const parsedData = JSON.parse(userData);
-        setUserRole(parsedData.role);
+        console.log('Datos del usuario:', parsedData);
+        setUserRole(parsedData.tipo || parsedData.role);
       }
     } catch (error) {
       console.error('Error cargando rol de usuario:', error);
@@ -86,93 +92,7 @@ export default function EpsScreen({ navigation }) {
 
   const handleAddEps = () => {
     if (userRole === 'admin') {
-      // Pedir todos los datos necesarios
-      Alert.prompt(
-        'Agregar EPS',
-        'Ingresa el nombre de la EPS:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Siguiente', 
-            onPress: async (nombre) => {
-              if (nombre && nombre.trim()) {
-                // Pedir NIT
-                Alert.prompt(
-                  'Agregar EPS',
-                  'Ingresa el NIT de la EPS:',
-                  [
-                    { text: 'Cancelar', style: 'cancel' },
-                    { 
-                      text: 'Siguiente', 
-                      onPress: async (nit) => {
-                        if (nit && nit.trim()) {
-                          // Pedir dirección
-                          Alert.prompt(
-                            'Agregar EPS',
-                            'Ingresa la dirección:',
-                            [
-                              { text: 'Cancelar', style: 'cancel' },
-                              { 
-                                text: 'Siguiente', 
-                                onPress: async (direccion) => {
-                                  if (direccion && direccion.trim()) {
-                                    // Pedir teléfono
-                                    Alert.prompt(
-                                      'Agregar EPS',
-                                      'Ingresa el teléfono:',
-                                      [
-                                        { text: 'Cancelar', style: 'cancel' },
-                                        { 
-                                          text: 'Siguiente', 
-                                          onPress: async (telefono) => {
-                                            if (telefono && telefono.trim()) {
-                                              // Pedir email
-                                              Alert.prompt(
-                                                'Agregar EPS',
-                                                'Ingresa el email:',
-                                                [
-                                                  { text: 'Cancelar', style: 'cancel' },
-                                                  { 
-                                                    text: 'Crear', 
-                                                    onPress: async (email) => {
-                                                      if (email && email.trim()) {
-                                                        await createEps({
-                                                          nombre: nombre.trim(),
-                                                          nit: nit.trim(),
-                                                          direccion: direccion.trim(),
-                                                          telefono: telefono.trim(),
-                                                          email: email.trim()
-                                                        });
-                                                      }
-                                                    }
-                                                  }
-                                                ],
-                                                'plain-text'
-                                              );
-                                            }
-                                          }
-                                        }
-                                      ],
-                                      'plain-text'
-                                    );
-                                  }
-                                }
-                              }
-                            ],
-                            'plain-text'
-                          );
-                        }
-                      }
-                    }
-                  ],
-                  'plain-text'
-                );
-              }
-            }
-          }
-        ],
-        'plain-text'
-      );
+      setShowCrearModal(true);
     } else {
       Alert.alert('Acceso Restringido', 'Solo los administradores pueden agregar EPS');
     }
@@ -196,42 +116,19 @@ export default function EpsScreen({ navigation }) {
 
   const handleEditEps = (eps) => {
     if (userRole === 'admin') {
-      Alert.prompt(
-        'Editar EPS',
-        'Modifica el nombre de la EPS:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Guardar', 
-            onPress: async (nuevoNombre) => {
-              if (nuevoNombre && nuevoNombre.trim()) {
-                await updateEps(eps.id, nuevoNombre.trim());
-              }
-            }
-          }
-        ],
-        'plain-text',
-        eps.nombre
-      );
+      setEpsEditando(eps);
+      setShowEditarModal(true);
     } else {
       Alert.alert('Acceso Restringido', 'Solo los administradores pueden editar EPS');
     }
   };
 
-  const updateEps = async (id, nombre) => {
-    try {
-      const result = await adminService.updateEps(id, { nombre: nombre });
-      
-      if (result.success) {
-        Alert.alert('✅ Éxito', 'EPS actualizada exitosamente');
-        loadEps();
-      } else {
-        Alert.alert('❌ Error', result.message || 'Error al actualizar EPS');
-      }
-    } catch (error) {
-      console.error('Error actualizando EPS:', error);
-      Alert.alert('❌ Error', 'Error al actualizar EPS');
-    }
+  const handleEpsCreated = () => {
+    loadEps();
+  };
+
+  const handleEpsUpdated = () => {
+    loadEps();
   };
 
   const handleDeleteEps = (eps) => {
@@ -378,6 +275,23 @@ export default function EpsScreen({ navigation }) {
           )}
         </ScrollView>
       </SafeAreaView>
+      
+      {/* Modales */}
+      <CrearEpsModal
+        visible={showCrearModal}
+        onClose={() => setShowCrearModal(false)}
+        onEpsCreated={handleEpsCreated}
+      />
+      
+      <EditarEpsModal
+        visible={showEditarModal}
+        onClose={() => {
+          setShowEditarModal(false);
+          setEpsEditando(null);
+        }}
+        eps={epsEditando}
+        onEpsUpdated={handleEpsUpdated}
+      />
     </LinearGradient>
   );
 }

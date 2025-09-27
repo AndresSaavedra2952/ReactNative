@@ -27,7 +27,8 @@ export default function PacienteDashboard({ navigation }) {
           style: "destructive",
           onPress: async () => {
             await logout();
-            navigation.replace("Login");
+            // No navegar manualmente, el AuthContext maneja la navegación
+            // navigation.replace("Login");
           }
         }
       ]

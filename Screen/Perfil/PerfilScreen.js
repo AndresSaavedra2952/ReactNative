@@ -4,9 +4,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { debugAuth, clearAuth } from "../../src/utils/debugAuth";
-import { testApiConnection } from "../../src/utils/testApi";
-import { forceLogin } from "../../src/utils/forceLogin";
-import { realLogin } from "../../src/utils/realLogin";
 
 export default function PerfilScreen({ navigation }) {
     const [userData, setUserData] = useState(null);
@@ -57,6 +54,15 @@ export default function PerfilScreen({ navigation }) {
         );
     };
 
+    const handleDebugAuth = async () => {
+        try {
+            await debugAuth();
+        } catch (error) {
+            console.error('Error en debug auth:', error);
+            Alert.alert('Error', 'Error en debug auth');
+        }
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -85,11 +91,13 @@ export default function PerfilScreen({ navigation }) {
                     </View>
                     
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{userData?.name || "Usuario"}</Text>
+                        <Text style={styles.userName}>{userData?.nombre || userData?.name || "Usuario"}</Text>
                         <Text style={styles.userEmail}>{userData?.email || "No disponible"}</Text>
                         <View style={styles.roleBadge}>
                             <Text style={styles.roleText}>
-                                {userData?.role === 'admin' ? 'Administrador' : 
+                                {userData?.tipo === 'admin' ? 'Administrador' : 
+                                 userData?.tipo === 'medico' ? 'Médico' : 
+                                 userData?.role === 'admin' ? 'Administrador' : 
                                  userData?.role === 'medico' ? 'Médico' : 'Paciente'}
                             </Text>
                         </View>

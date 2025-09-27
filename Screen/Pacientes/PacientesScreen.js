@@ -15,12 +15,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { pacientesService, adminService } from '../../src/service/ApiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CrearPacienteModal from '../../src/components/CrearPacienteModal';
+import EditarPacienteModal from '../../src/components/EditarPacienteModal';
 
 export default function PacientesScreen({ navigation }) {
   const [pacientes, setPacientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [showCrearModal, setShowCrearModal] = useState(false);
+  const [showEditarModal, setShowEditarModal] = useState(false);
+  const [pacienteEditando, setPacienteEditando] = useState(null);
 
   useEffect(() => {
     loadUserRole();
@@ -112,88 +117,7 @@ export default function PacientesScreen({ navigation }) {
 
   const handleAddPaciente = () => {
     if (userRole === 'admin') {
-      Alert.prompt(
-        'Agregar Paciente',
-        'Ingresa el nombre del paciente:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Siguiente',
-            onPress: (nombre) => {
-              if (nombre && nombre.trim()) {
-                Alert.prompt(
-                  'Agregar Paciente',
-                  'Ingresa el apellido del paciente:',
-                  [
-                    { text: 'Cancelar', style: 'cancel' },
-                    {
-                      text: 'Siguiente',
-                      onPress: (apellido) => {
-                        if (apellido && apellido.trim()) {
-                          Alert.prompt(
-                            'Agregar Paciente',
-                            'Ingresa el email del paciente:',
-                            [
-                              { text: 'Cancelar', style: 'cancel' },
-                              {
-                                text: 'Siguiente',
-                                onPress: (email) => {
-                                  if (email && email.trim()) {
-                                    Alert.prompt(
-                                      'Agregar Paciente',
-                                      'Ingresa la contraseña del paciente:',
-                                      [
-                                        { text: 'Cancelar', style: 'cancel' },
-                                        {
-                                          text: 'Siguiente',
-                                          onPress: (password) => {
-                                            if (password && password.trim()) {
-                                              Alert.prompt(
-                                                'Agregar Paciente',
-                                                'Ingresa el teléfono del paciente:',
-                                                [
-                                                  { text: 'Cancelar', style: 'cancel' },
-                                                  {
-                                                    text: 'Crear',
-                                                    onPress: async (telefono) => {
-                                                      if (telefono && telefono.trim()) {
-                                                        await createPaciente({
-                                                          nombre: nombre.trim(),
-                                                          apellido: apellido.trim(),
-                                                          email: email.trim(),
-                                                          password: password.trim(),
-                                                          telefono: telefono.trim()
-                                                        });
-                                                      }
-                                                    }
-                                                  }
-                                                ],
-                                                'plain-text'
-                                              );
-                                            }
-                                          }
-                                        }
-                                      ],
-                                      'plain-text'
-                                    );
-                                  }
-                                }
-                              }
-                            ],
-                            'plain-text'
-                          );
-                        }
-                      }
-                    }
-                  ],
-                  'plain-text'
-                );
-              }
-            }
-          }
-        ],
-        'plain-text'
-      );
+      setShowCrearModal(true);
     } else {
       Alert.alert('Acceso Restringido', 'Solo los administradores pueden agregar pacientes');
     }
@@ -230,41 +154,19 @@ export default function PacientesScreen({ navigation }) {
 
   const handleEditPaciente = (paciente) => {
     if (userRole === 'admin') {
-      Alert.prompt(
-        'Editar Paciente',
-        'Modifica el nombre del paciente:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Guardar',
-            onPress: async (nuevoNombre) => {
-              if (nuevoNombre && nuevoNombre.trim()) {
-                await updatePaciente(paciente.id, { nombre: nuevoNombre.trim() });
-              }
-            }
-          }
-        ],
-        'plain-text',
-        paciente.nombre
-      );
+      setPacienteEditando(paciente);
+      setShowEditarModal(true);
     } else {
       Alert.alert('Acceso Restringido', 'Solo los administradores pueden editar pacientes');
     }
   };
 
-  const updatePaciente = async (id, data) => {
-    try {
-      const result = await adminService.updatePaciente(id, data);
-      if (result.success) {
-        Alert.alert('✅ Éxito', 'Paciente actualizado exitosamente');
-        loadPacientes();
-      } else {
-        Alert.alert('❌ Error', result.message || 'Error al actualizar paciente');
-      }
-    } catch (error) {
-      console.error('Error actualizando paciente:', error);
-      Alert.alert('❌ Error', 'Error al actualizar paciente');
-    }
+  const handlePacienteCreated = () => {
+    loadPacientes();
+  };
+
+  const handlePacienteUpdated = () => {
+    loadPacientes();
   };
 
   const handleDeletePaciente = (paciente) => {
@@ -395,6 +297,23 @@ export default function PacientesScreen({ navigation }) {
           )}
         </ScrollView>
       </SafeAreaView>
+      
+      {/* Modales */}
+      <CrearPacienteModal
+        visible={showCrearModal}
+        onClose={() => setShowCrearModal(false)}
+        onPacienteCreated={handlePacienteCreated}
+      />
+      
+      <EditarPacienteModal
+        visible={showEditarModal}
+        onClose={() => {
+          setShowEditarModal(false);
+          setPacienteEditando(null);
+        }}
+        paciente={pacienteEditando}
+        onPacienteUpdated={handlePacienteUpdated}
+      />
     </LinearGradient>
   );
 }

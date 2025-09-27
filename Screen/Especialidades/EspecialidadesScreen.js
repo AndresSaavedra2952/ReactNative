@@ -15,12 +15,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { especialidadesService, adminService } from '../../src/service/ApiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CrearEspecialidadModal from '../../src/components/CrearEspecialidadModal';
+import EditarEspecialidadModal from '../../src/components/EditarEspecialidadModal';
 
 export default function EspecialidadesScreen({ navigation }) {
   const [especialidades, setEspecialidades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [showCrearModal, setShowCrearModal] = useState(false);
+  const [showEditarModal, setShowEditarModal] = useState(false);
+  const [especialidadEditando, setEspecialidadEditando] = useState(null);
 
   useEffect(() => {
     loadUserRole();
@@ -88,22 +93,7 @@ export default function EspecialidadesScreen({ navigation }) {
 
   const handleAddEspecialidad = () => {
     if (userRole === 'admin') {
-      Alert.prompt(
-        'Agregar Especialidad',
-        'Ingresa el nombre de la nueva especialidad:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Agregar', 
-            onPress: async (nombre) => {
-              if (nombre && nombre.trim()) {
-                await createEspecialidad(nombre.trim());
-              }
-            }
-          }
-        ],
-        'plain-text'
-      );
+      setShowCrearModal(true);
     } else {
       Alert.alert('Acceso Restringido', 'Solo los administradores pueden agregar especialidades');
     }
@@ -127,42 +117,19 @@ export default function EspecialidadesScreen({ navigation }) {
 
   const handleEditEspecialidad = (especialidad) => {
     if (userRole === 'admin') {
-      Alert.prompt(
-        'Editar Especialidad',
-        'Modifica el nombre de la especialidad:',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Guardar', 
-            onPress: async (nuevoNombre) => {
-              if (nuevoNombre && nuevoNombre.trim()) {
-                await updateEspecialidad(especialidad.id, nuevoNombre.trim());
-              }
-            }
-          }
-        ],
-        'plain-text',
-        especialidad.nombre
-      );
+      setEspecialidadEditando(especialidad);
+      setShowEditarModal(true);
     } else {
       Alert.alert('Acceso Restringido', 'Solo los administradores pueden editar especialidades');
     }
   };
 
-  const updateEspecialidad = async (id, nombre) => {
-    try {
-      const result = await adminService.updateEspecialidad(id, { nombre });
-      
-      if (result.success) {
-        Alert.alert('✅ Éxito', 'Especialidad actualizada exitosamente');
-        loadEspecialidades(); // Recargar la lista
-      } else {
-        Alert.alert('❌ Error', result.message || 'Error al actualizar especialidad');
-      }
-    } catch (error) {
-      console.error('Error actualizando especialidad:', error);
-      Alert.alert('❌ Error', 'Error al actualizar especialidad');
-    }
+  const handleEspecialidadCreated = () => {
+    loadEspecialidades();
+  };
+
+  const handleEspecialidadUpdated = () => {
+    loadEspecialidades();
   };
 
   const handleDeleteEspecialidad = (especialidad) => {
@@ -306,6 +273,23 @@ export default function EspecialidadesScreen({ navigation }) {
           )}
         </ScrollView>
       </SafeAreaView>
+      
+      {/* Modales */}
+      <CrearEspecialidadModal
+        visible={showCrearModal}
+        onClose={() => setShowCrearModal(false)}
+        onEspecialidadCreated={handleEspecialidadCreated}
+      />
+      
+      <EditarEspecialidadModal
+        visible={showEditarModal}
+        onClose={() => {
+          setShowEditarModal(false);
+          setEspecialidadEditando(null);
+        }}
+        especialidad={especialidadEditando}
+        onEspecialidadUpdated={handleEspecialidadUpdated}
+      />
     </LinearGradient>
   );
 }
