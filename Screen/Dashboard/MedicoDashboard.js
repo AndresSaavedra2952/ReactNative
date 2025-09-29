@@ -27,7 +27,7 @@ export default function MedicoDashboard({ navigation }) {
           style: "destructive",
           onPress: async () => {
             await logout();
-            navigation.replace("Login");
+            // No navegar manualmente, el AuthContext maneja la navegación
           }
         }
       ]
@@ -46,28 +46,28 @@ export default function MedicoDashboard({ navigation }) {
       title: "Pacientes",
       description: "Ver mis pacientes",
       icon: "people",
-      color: ["#43e97b", "#38f9d7"],
+      color: ["#ff6b6b", "#ee5a24"],
       onPress: () => navigation.navigate("MisPacientes")
     },
     {
       title: "Agenda",
       description: "Mi agenda médica",
       icon: "time",
-      color: ["#fa709a", "#fee140"],
+      color: ["#4ecdc4", "#44a08d"],
       onPress: () => navigation.navigate("Agenda")
     },
     {
       title: "Perfil",
       description: "Actualizar mi información",
       icon: "person",
-      color: ["#a8edea", "#fed6e3"],
+      color: ["#45b7d1", "#96c93d"],
       onPress: () => navigation.navigate("Perfil")
     },
     {
       title: "Consultorio",
       description: "Información de mi consultorio",
       icon: "home",
-      color: ["#ffecd2", "#fcb69f"],
+      color: ["#96ceb4", "#feca57"],
       onPress: () => navigation.navigate("MiConsultorio")
     },
     {
@@ -76,13 +76,20 @@ export default function MedicoDashboard({ navigation }) {
       icon: "bar-chart",
       color: ["#667eea", "#764ba2"],
       onPress: () => navigation.navigate("Reportes")
+    },
+    {
+      title: "Historial",
+      description: "Historial médico completo",
+      icon: "document-text",
+      color: ["#ff9ff3", "#54a0ff"],
+      onPress: () => navigation.navigate("HistorialMedico")
     }
   ];
 
   return (
-    <LinearGradient colors={["#43e97b", "#38f9d7"]} style={styles.container}>
+    <LinearGradient colors={["#4facfe", "#00f2fe"]} style={styles.container}>
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#43e97b" />
+        <StatusBar barStyle="light-content" backgroundColor="#4facfe" />
         
         {/* Header */}
         <View style={styles.header}>

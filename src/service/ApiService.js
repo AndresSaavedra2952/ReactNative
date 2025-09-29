@@ -74,6 +74,7 @@ export class ApiService {
 }
 
 // Servicios específicos para cada entidad según las rutas de Laravel
+export const administradoresService = new ApiService('administradores');
 export const citasService = new ApiService('citas');
 export const medicosService = new ApiService('medicos');
 export const pacientesService = new ApiService('pacientes');
@@ -548,25 +549,33 @@ export const profileService = {
       
       if (!userDataString) {
         console.log('No hay datos de usuario en AsyncStorage, usando datos por defecto');
-        const defaultUserData = { role: 'medico', id: 1 };
-        const endpoint = '/medico/profile';
+        const defaultUserData = { tipo: 'medico', id: 1 };
+        const endpoint = '/profile/update';
         console.log('Usando endpoint por defecto:', endpoint);
-        const response = await api.put(endpoint, data);
+        const response = await api.put(endpoint, {
+          ...data,
+          user_id: defaultUserData.id,
+          user_type: defaultUserData.tipo
+        });
         return { success: true, data: response.data };
       }
       
       const userData = JSON.parse(userDataString);
       console.log('Datos del usuario:', userData);
       
-      let endpoint;
-      
-      // Usar el nuevo endpoint simple que funciona para todos
-      endpoint = '/profile/update';
+      // Usar el nuevo endpoint que funciona para todos
+      const endpoint = '/profile/update';
       
       console.log('Actualizando perfil en endpoint:', endpoint);
       console.log('Datos a enviar:', data);
       console.log('Token actual:', await AsyncStorage.getItem('userToken'));
-      const response = await api.put(endpoint, data);
+      
+      const response = await api.put(endpoint, {
+        ...data,
+        user_id: userData.id,
+        user_type: userData.tipo || userData.role || 'paciente'
+      });
+      
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Error al actualizar perfil:', error);

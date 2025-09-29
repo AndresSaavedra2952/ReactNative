@@ -27,11 +27,23 @@ export const AuthProvider = ({ children }) => {
       const token = await AsyncStorage.getItem('userToken');
       const userData = await AsyncStorage.getItem('userData');
       
+      console.log('checkAuthStatus - token:', token ? 'existe' : 'no existe');
+      console.log('checkAuthStatus - userData:', userData);
+      
       if (token && userData) {
         const parsedUserData = JSON.parse(userData);
+        console.log('checkAuthStatus - parsedUserData:', parsedUserData);
+        console.log('checkAuthStatus - tipo:', parsedUserData.tipo);
+        
         setUser(parsedUserData);
         setUserType(parsedUserData.tipo);
         setIsAuthenticated(true);
+        
+        console.log('checkAuthStatus - Estado actualizado:', {
+          user: parsedUserData,
+          userType: parsedUserData.tipo,
+          isAuthenticated: true
+        });
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
@@ -42,73 +54,71 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // Intentar login en todas las tablas para detectar el tipo de usuario
-      const loginPromises = [
-        api.post('/login', { email, password, tipo: 'admin' }),
-        api.post('/login', { email, password, tipo: 'medico' }),
-        api.post('/login', { email, password, tipo: 'paciente' })
+      console.log('Iniciando login para:', email);
+      
+      // Intentar login secuencialmente para detectar el tipo de usuario
+      const loginAttempts = [
+        { tipo: 'admin', endpoint: '/login' },
+        { tipo: 'medico', endpoint: '/login' },
+        { tipo: 'paciente', endpoint: '/login' }
       ];
 
-      const results = await Promise.allSettled(loginPromises);
-      
-      // Buscar el primer login exitoso
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        if (result.status === 'fulfilled' && result.value.data.success) {
-          // Verificar la estructura de la respuesta
-          const responseData = result.value.data;
-          console.log('Respuesta del backend:', responseData);
+      for (const attempt of loginAttempts) {
+        try {
+          console.log(`Intentando login como ${attempt.tipo}...`);
+          const response = await api.post(attempt.endpoint, { 
+            email, 
+            password, 
+            tipo: attempt.tipo 
+          });
           
-          // Intentar obtener los datos de diferentes estructuras posibles
-          const userData = responseData.data?.user || responseData.user;
-          const token = responseData.data?.token || responseData.token;
-          const userTipo = responseData.data?.tipo || responseData.tipo || ['admin', 'medico', 'paciente'][i];
-          
-          if (!userData || !token) {
-            console.log('Datos incompletos en la respuesta:', { userData, token, userTipo });
-            continue;
+          if (response.data.success) {
+            console.log(`Login exitoso como ${attempt.tipo}:`, response.data);
+            
+            // Extraer datos del usuario de manera robusta
+            const userData = response.data.data?.user || response.data.user;
+            const token = response.data.data?.token || response.data.token;
+            const userTipo = response.data.data?.tipo || response.data.tipo || attempt.tipo;
+            
+            console.log('Datos extraídos:', { userData, token, userTipo });
+            
+            if (userData && token) {
+              // Guardar datos en AsyncStorage
+              await AsyncStorage.setItem('userToken', token);
+              await AsyncStorage.setItem('userData', JSON.stringify({
+                ...userData,
+                tipo: userTipo
+              }));
+              
+              // Actualizar estado
+              setUser({ ...userData, tipo: userTipo });
+              setUserType(userTipo);
+              setIsAuthenticated(true);
+              
+              console.log('Login completado exitosamente como:', userTipo);
+              return { success: true, userType: userTipo };
+            }
           }
-          
-          console.log('Login exitoso:', { userTipo, userData });
-          
-          // Guardar datos en AsyncStorage
-          await AsyncStorage.setItem('userToken', token);
-          await AsyncStorage.setItem('userData', JSON.stringify({
-            ...userData,
-            tipo: userTipo
-          }));
-
-          // Actualizar estado
-          setUser({ ...userData, tipo: userTipo });
-          setUserType(userTipo);
-          setIsAuthenticated(true);
-
-          return {
-            success: true,
-            user: { ...userData, tipo: userTipo },
-            tipo: userTipo
-          };
+        } catch (error) {
+          console.log(`Login falló para ${attempt.tipo}:`, error.response?.status);
+          // Continuar con el siguiente intento
         }
       }
-
-      // Si ningún login fue exitoso
-      return {
-        success: false,
-        message: 'Credenciales inválidas'
-      };
-
+      
+      // Si llegamos aquí, ningún login fue exitoso
+      throw new Error('Credenciales inválidas');
+      
     } catch (error) {
       console.error('Error en login:', error);
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Error de conexión'
-      };
+      throw error;
     }
   };
 
   const logout = async () => {
     try {
-      // Solo limpiar datos locales (no hay endpoint de logout en el backend)
+      console.log('Cerrando sesión...');
+      
+      // Limpiar AsyncStorage
       await AsyncStorage.removeItem('userToken');
       await AsyncStorage.removeItem('userData');
       
@@ -116,8 +126,10 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setUserType(null);
       setIsAuthenticated(false);
+      
+      console.log('Sesión cerrada exitosamente');
     } catch (error) {
-      console.error('Error en logout:', error);
+      console.error('Error al cerrar sesión:', error);
     }
   };
 
@@ -127,8 +139,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     loading,
     login,
-    logout,
-    checkAuthStatus
+    logout
   };
 
   return (

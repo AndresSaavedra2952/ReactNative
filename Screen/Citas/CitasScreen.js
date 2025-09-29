@@ -57,21 +57,19 @@ export default function CitasScreen({ navigation }) {
   };
 
   const loadCitas = async () => {
+    console.log("Iniciando carga de citas, userRole:", userRole);
     setLoading(true);
     try {
       let result;
       
-      if (userRole === 'admin') {
-        result = await adminService.getCitas();
-      } else {
-        result = await citasService.getAll();
-      }
+      // Siempre usar citasService.getAll() por ahora para evitar problemas
+      result = await citasService.getAll();
       
       console.log("Respuesta de citas:", result);
       
       if (result && result.success && Array.isArray(result.data)) {
         setCitas(result.data);
-        console.log("Citas cargadas:", result.data.length);
+        console.log("Citas cargadas exitosamente:", result.data.length);
       } else {
         console.log("Error en respuesta o datos no válidos:", result);
         setCitas([]);
@@ -83,9 +81,10 @@ export default function CitasScreen({ navigation }) {
     } catch (error) {
       console.error("Error al cargar citas:", error);
       setCitas([]);
-      Alert.alert("Error", "Error al cargar las citas");
+      Alert.alert("Error", "Error al cargar las citas: " + error.message);
     } finally {
       setLoading(false);
+      console.log("Carga de citas finalizada");
     }
   };
 
@@ -109,19 +108,47 @@ export default function CitasScreen({ navigation }) {
   };
 
   const handleCitaUpdated = () => {
-    loadCitas();
+    console.log("Cita actualizada, recargando lista...");
+    // Pequeño delay para asegurar que el backend haya procesado la actualización
+    setTimeout(() => {
+      loadCitas();
+    }, 500);
+    setShowEditarModal(false);
+    setCitaEditando(null);
   };
 
   const handleConfirmCita = async (citaId) => {
     try {
-      const result = await citasService.update(citaId, { estado: 'confirmada' });
-      if (result.success) {
-        Alert.alert("Éxito", "Cita confirmada correctamente");
-        loadCitas();
-      } else {
-        Alert.alert("Error", result.message);
+      // Buscar la cita para obtener todos los datos necesarios
+      const cita = getCitasArray().find(c => c.id === citaId);
+      if (!cita) {
+        Alert.alert("Error", "Cita no encontrada");
+        return;
       }
+
+      // Enviar todos los campos requeridos con el estado cambiado
+      const updateData = {
+        paciente_id: cita.paciente_id,
+        medico_id: cita.medico_id,
+        fecha: cita.fecha,
+        hora: cita.hora,
+        motivo_consulta: cita.motivo_consulta,
+        observaciones: cita.observaciones,
+        estado: 'confirmada'
+      };
+
+              const result = await citasService.update(citaId, updateData);
+              if (result.success) {
+                Alert.alert("Éxito", "Cita confirmada correctamente");
+                // Pequeño delay para asegurar que el backend haya procesado la actualización
+                setTimeout(() => {
+                  loadCitas();
+                }, 500);
+              } else {
+                Alert.alert("Error", result.message);
+              }
     } catch (error) {
+      console.error("Error al confirmar cita:", error);
       Alert.alert("Error", "Error al confirmar la cita");
     }
   };
@@ -137,14 +164,36 @@ export default function CitasScreen({ navigation }) {
           style: "destructive",
           onPress: async () => {
             try {
-              const result = await citasService.update(citaId, { estado: 'cancelada' });
+              // Buscar la cita para obtener todos los datos necesarios
+              const cita = getCitasArray().find(c => c.id === citaId);
+              if (!cita) {
+                Alert.alert("Error", "Cita no encontrada");
+                return;
+              }
+
+              // Enviar todos los campos requeridos con el estado cambiado
+              const updateData = {
+                paciente_id: cita.paciente_id,
+                medico_id: cita.medico_id,
+                fecha: cita.fecha,
+                hora: cita.hora,
+                motivo_consulta: cita.motivo_consulta,
+                observaciones: cita.observaciones,
+                estado: 'cancelada'
+              };
+
+              const result = await citasService.update(citaId, updateData);
               if (result.success) {
                 Alert.alert("Éxito", "Cita cancelada correctamente");
-                loadCitas();
+                // Pequeño delay para asegurar que el backend haya procesado la actualización
+                setTimeout(() => {
+                  loadCitas();
+                }, 500);
               } else {
                 Alert.alert("Error", result.message);
               }
             } catch (error) {
+              console.error("Error al cancelar cita:", error);
               Alert.alert("Error", "Error al cancelar la cita");
             }
           }
@@ -187,9 +236,9 @@ export default function CitasScreen({ navigation }) {
   }
 
   return (
-    <LinearGradient colors={["#e0f7ff", "#f9fbfd"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#667eea", "#764ba2"]} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#e0f7ff" />
+        <StatusBar barStyle="light-content" backgroundColor="#667eea" />
         
         <View style={styles.header}>
           <TouchableOpacity 
@@ -236,22 +285,22 @@ export default function CitasScreen({ navigation }) {
               {getCitasArray().map((cita) => (
                 <View key={cita.id} style={styles.citaCard}>
                   <View style={styles.citaHeader}>
-                    <Text style={styles.citaDoctor}>Dr. {cita.medico?.nombre || 'N/A'}</Text>
+                    <Text style={styles.citaDoctor}>Dr. {cita.medico_nombre || 'N/A'} {cita.medico_apellido || ''}</Text>
                     <Text style={[styles.citaStatus, getStatusStyle(cita.estado)]}>
                       {cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
                     </Text>
                   </View>
                   <Text style={styles.citaDetails}>
-                    Especialidad: {cita.especialidad?.nombre || 'N/A'}
+                    Especialidad: {cita.especialidad_nombre || 'N/A'}
                   </Text>
                   <Text style={styles.citaDetails}>
-                    Consultorio: {cita.consultorio?.nombre || 'N/A'}
+                    Consultorio: {cita.consultorio_nombre || 'N/A'}
                   </Text>
                   <Text style={styles.citaDate}>
                     Fecha y Hora: {formatDate(cita.fecha_hora)}
                   </Text>
                   <Text style={styles.citaMotivo}>
-                    Motivo: {cita.motivo || 'No especificado'}
+                    Motivo: {cita.motivo_consulta || 'No especificado'}
                   </Text>
 
                   <View style={styles.citaActions}>
@@ -321,12 +370,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fbfd',
+    backgroundColor: '#667eea',
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -334,23 +383,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   backButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: '#fff',
   },
   addButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
   },
   content: {
@@ -364,14 +413,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
     textAlign: 'center',
+    opacity: 0.9,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -380,15 +430,18 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#666',
+    color: '#fff',
     marginTop: 20,
     marginBottom: 30,
+    opacity: 0.9,
   },
   emptyButton: {
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   emptyButtonText: {
     color: '#fff',
@@ -417,7 +470,7 @@ const styles = StyleSheet.create({
   citaDoctor: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: '#667eea',
   },
   citaStatus: {
     fontSize: 12,
@@ -464,7 +517,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   actionButtonEdit: {
-    backgroundColor: '#1976D2',
+    backgroundColor: '#667eea',
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,

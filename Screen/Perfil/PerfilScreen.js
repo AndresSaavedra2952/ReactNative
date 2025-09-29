@@ -3,9 +3,10 @@ import { View, Text, StyleSheet, ActivityIndicator, Alert, ScrollView, Touchable
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { debugAuth, clearAuth } from "../../src/utils/debugAuth";
+import { useAuth } from "../../src/context/AuthContext";
 
 export default function PerfilScreen({ navigation }) {
+    const { logout } = useAuth();
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -42,11 +43,11 @@ export default function PerfilScreen({ navigation }) {
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            await AsyncStorage.removeItem('userToken');
-                            await AsyncStorage.removeItem('userData');
-                            navigation.navigate('Inicio');
+                            await logout();
+                            // No navegar manualmente, el AuthContext maneja la navegación
                         } catch (error) {
                             console.error("Error al cerrar sesión:", error);
+                            Alert.alert("Error", "Error al cerrar sesión");
                         }
                     }
                 }
@@ -55,12 +56,55 @@ export default function PerfilScreen({ navigation }) {
     };
 
     const handleDebugAuth = async () => {
-        try {
-            await debugAuth();
-        } catch (error) {
-            console.error('Error en debug auth:', error);
-            Alert.alert('Error', 'Error en debug auth');
-        }
+        Alert.alert(
+            "Debug Auth",
+            "Selecciona el tipo de usuario para probar:",
+            [
+                { text: "Cancelar", style: "cancel" },
+                { 
+                    text: "Admin", 
+                    onPress: async () => {
+                        await AsyncStorage.setItem('userData', JSON.stringify({
+                            id: 1,
+                            nombre: 'Admin',
+                            apellido: 'Sistema',
+                            email: 'admin@test.com',
+                            tipo: 'admin'
+                        }));
+                        await AsyncStorage.setItem('userToken', 'admin_token_1');
+                        Alert.alert("Debug", "Cambiado a Admin. Recarga la app para ver el cambio.");
+                    }
+                },
+                { 
+                    text: "Médico", 
+                    onPress: async () => {
+                        await AsyncStorage.setItem('userData', JSON.stringify({
+                            id: 1,
+                            nombre: 'Dr. Juan',
+                            apellido: 'Pérez',
+                            email: 'medico@test.com',
+                            tipo: 'medico'
+                        }));
+                        await AsyncStorage.setItem('userToken', 'medico_token_1');
+                        Alert.alert("Debug", "Cambiado a Médico. Recarga la app para ver el cambio.");
+                    }
+                },
+                { 
+                    text: "Paciente", 
+                    onPress: async () => {
+                        await AsyncStorage.setItem('userData', JSON.stringify({
+                            id: 1,
+                            nombre: 'María',
+                            apellido: 'García',
+                            email: 'paciente@test.com',
+                            tipo: 'paciente'
+                        }));
+                        await AsyncStorage.setItem('userToken', 'paciente_token_1');
+                        Alert.alert("Debug", "Cambiado a Paciente. Recarga la app para ver el cambio.");
+                    }
+                }
+            ]
+        );
     };
 
     if (loading) {

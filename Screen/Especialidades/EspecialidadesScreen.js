@@ -37,7 +37,7 @@ export default function EspecialidadesScreen({ navigation }) {
       const userData = await AsyncStorage.getItem('userData');
       if (userData) {
         const parsedData = JSON.parse(userData);
-        setUserRole(parsedData.role);
+        setUserRole(parsedData.tipo || parsedData.role);
       }
     } catch (error) {
       console.error('Error cargando rol de usuario:', error);
@@ -205,9 +205,9 @@ export default function EspecialidadesScreen({ navigation }) {
   }
 
   return (
-    <LinearGradient colors={["#e0f7ff", "#f9fbfd"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#667eea", "#764ba2"]} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#e0f7ff" />
+        <StatusBar barStyle="light-content" backgroundColor="#667eea" />
         
         <View style={styles.header}>
           <TouchableOpacity 
@@ -302,12 +302,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fbfd',
+    backgroundColor: '#667eea',
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -315,23 +315,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   backButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: '#fff',
   },
   addButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
   },
   content: {
@@ -345,14 +345,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
     textAlign: 'center',
+    opacity: 0.9,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -361,15 +362,18 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#666',
+    color: '#fff',
     marginTop: 20,
     marginBottom: 30,
+    opacity: 0.9,
   },
   emptyButton: {
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   emptyButtonText: {
     color: '#fff',
@@ -399,7 +403,7 @@ const styles = StyleSheet.create({
   especialidadNombre: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: '#667eea',
     marginBottom: 5,
   },
   especialidadDescripcion: {

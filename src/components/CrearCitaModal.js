@@ -10,21 +10,23 @@ import {
   ScrollView,
   ActivityIndicator
 } from 'react-native';
-import { citasService, pacientesService, medicosService } from '../service/ApiService';
+import { citasService, pacientesService, medicosService, consultoriosService } from '../service/ApiService';
 
 const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
   const [formData, setFormData] = useState({
     paciente_id: '',
     medico_id: '',
+    consultorio_id: '',
     fecha: '',
     hora: '',
-    motivo: '',
+    motivo_consulta: '',
     observaciones: '',
-    estado: 'programada'
+    estado: 'pendiente'
   });
   const [loading, setLoading] = useState(false);
   const [pacientes, setPacientes] = useState([]);
   const [medicos, setMedicos] = useState([]);
+  const [consultorios, setConsultorios] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
@@ -47,6 +49,12 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
       if (medicosResponse.success) {
         setMedicos(medicosResponse.data);
       }
+
+      // Cargar consultorios
+      const consultoriosResponse = await consultoriosService.getAll();
+      if (consultoriosResponse.success) {
+        setConsultorios(consultoriosResponse.data);
+      }
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -55,6 +63,11 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
   };
 
   const handleInputChange = (field, value) => {
+    // Formatear automáticamente la hora si se ingresa HH:MM
+    if (field === 'hora' && value.match(/^\d{2}:\d{2}$/)) {
+      value = value + ':00';
+    }
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -71,6 +84,10 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
       Alert.alert('Error', 'Debes seleccionar un médico');
       return;
     }
+    if (!formData.consultorio_id) {
+      Alert.alert('Error', 'Debes seleccionar un consultorio');
+      return;
+    }
     if (!formData.fecha.trim()) {
       Alert.alert('Error', 'La fecha es obligatoria');
       return;
@@ -79,7 +96,7 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
       Alert.alert('Error', 'La hora es obligatoria');
       return;
     }
-    if (!formData.motivo.trim()) {
+    if (!formData.motivo_consulta.trim()) {
       Alert.alert('Error', 'El motivo es obligatorio');
       return;
     }
@@ -96,7 +113,7 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
           hora: '',
           motivo: '',
           observaciones: '',
-          estado: 'programada'
+          estado: 'pendiente'
         });
         onCitaCreated();
         onClose();
@@ -192,6 +209,29 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
                 </View>
 
                 <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Consultorio *</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorContainer}>
+                    {consultorios.map((consultorio) => (
+                      <TouchableOpacity
+                        key={consultorio.id}
+                        style={[
+                          styles.selectorItem,
+                          formData.consultorio_id === consultorio.id && styles.selectorItemSelected
+                        ]}
+                        onPress={() => handleInputChange('consultorio_id', consultorio.id)}
+                      >
+                        <Text style={[
+                          styles.selectorText,
+                          formData.consultorio_id === consultorio.id && styles.selectorTextSelected
+                        ]}>
+                          {consultorio.nombre} - {consultorio.numero}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.inputGroup}>
                   <Text style={styles.label}>Fecha *</Text>
                   <TextInput
                     style={styles.input}
@@ -208,7 +248,7 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
                     style={styles.input}
                     value={formData.hora}
                     onChangeText={(value) => handleInputChange('hora', value)}
-                    placeholder="HH:MM"
+                    placeholder="HH:MM:SS"
                     placeholderTextColor="#999"
                   />
                 </View>
@@ -217,8 +257,8 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
                   <Text style={styles.label}>Motivo *</Text>
                   <TextInput
                     style={[styles.input, styles.textArea]}
-                    value={formData.motivo}
-                    onChangeText={(value) => handleInputChange('motivo', value)}
+                    value={formData.motivo_consulta}
+                    onChangeText={(value) => handleInputChange('motivo_consulta', value)}
                     placeholder="Motivo de la consulta..."
                     placeholderTextColor="#999"
                     multiline
@@ -242,7 +282,7 @@ const CrearCitaModal = ({ visible, onClose, onCitaCreated }) => {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Estado</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorContainer}>
-                    {['programada', 'confirmada', 'completada', 'cancelada'].map((estado) => (
+                    {['pendiente', 'confirmada', 'completada', 'cancelada'].map((estado) => (
                       <TouchableOpacity
                         key={estado}
                         style={[

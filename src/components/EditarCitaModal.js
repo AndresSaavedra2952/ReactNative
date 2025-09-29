@@ -10,33 +10,46 @@ import {
   ScrollView,
   ActivityIndicator
 } from 'react-native';
-import { citasService, pacientesService, medicosService } from '../service/ApiService';
+import { citasService, pacientesService, medicosService, consultoriosService } from '../service/ApiService';
 
 const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
   const [formData, setFormData] = useState({
     paciente_id: '',
     medico_id: '',
+    consultorio_id: '',
     fecha: '',
     hora: '',
-    motivo: '',
+    motivo_consulta: '',
     observaciones: '',
-    estado: 'programada'
+    estado: 'pendiente'
   });
   const [loading, setLoading] = useState(false);
   const [pacientes, setPacientes] = useState([]);
   const [medicos, setMedicos] = useState([]);
+  const [consultorios, setConsultorios] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
     if (cita) {
+      console.log("Cita recibida:", cita);
       setFormData({
+        paciente_id: cita.paciente_id || '',
+        medico_id: cita.medico_id || '',
+        consultorio_id: cita.consultorio_id || '',
+        fecha: cita.fecha || '',
+        hora: cita.hora || '',
+        motivo_consulta: cita.motivo_consulta || cita.motivo || '',
+        observaciones: cita.observaciones || '',
+        estado: cita.estado || 'pendiente'
+      });
+      console.log("FormData inicializado:", {
         paciente_id: cita.paciente_id || '',
         medico_id: cita.medico_id || '',
         fecha: cita.fecha || '',
         hora: cita.hora || '',
-        motivo: cita.motivo || '',
+        motivo_consulta: cita.motivo_consulta || cita.motivo || '',
         observaciones: cita.observaciones || '',
-        estado: cita.estado || 'programada'
+        estado: cita.estado || 'pendiente'
       });
     }
   }, [cita]);
@@ -61,6 +74,12 @@ const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
       if (medicosResponse.success) {
         setMedicos(medicosResponse.data);
       }
+
+      // Cargar consultorios
+      const consultoriosResponse = await consultoriosService.getAll();
+      if (consultoriosResponse.success) {
+        setConsultorios(consultoriosResponse.data);
+      }
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -69,6 +88,11 @@ const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
   };
 
   const handleInputChange = (field, value) => {
+    // Formatear automáticamente la hora si se ingresa HH:MM
+    if (field === 'hora' && value.match(/^\d{2}:\d{2}$/)) {
+      value = value + ':00';
+    }
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -85,6 +109,10 @@ const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
       Alert.alert('Error', 'Debes seleccionar un médico');
       return;
     }
+    if (!formData.consultorio_id) {
+      Alert.alert('Error', 'Debes seleccionar un consultorio');
+      return;
+    }
     if (!formData.fecha.trim()) {
       Alert.alert('Error', 'La fecha es obligatoria');
       return;
@@ -93,13 +121,14 @@ const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
       Alert.alert('Error', 'La hora es obligatoria');
       return;
     }
-    if (!formData.motivo.trim()) {
+    if (!formData.motivo_consulta.trim()) {
       Alert.alert('Error', 'El motivo es obligatorio');
       return;
     }
 
     setLoading(true);
     try {
+      console.log("Datos a enviar:", formData);
       const response = await citasService.update(cita.id, formData);
       if (response.success) {
         Alert.alert('Éxito', 'Cita actualizada exitosamente');
@@ -187,6 +216,29 @@ const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
                 </View>
 
                 <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Consultorio *</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorContainer}>
+                    {consultorios.map((consultorio) => (
+                      <TouchableOpacity
+                        key={consultorio.id}
+                        style={[
+                          styles.selectorItem,
+                          formData.consultorio_id === consultorio.id && styles.selectorItemSelected
+                        ]}
+                        onPress={() => handleInputChange('consultorio_id', consultorio.id)}
+                      >
+                        <Text style={[
+                          styles.selectorText,
+                          formData.consultorio_id === consultorio.id && styles.selectorTextSelected
+                        ]}>
+                          {consultorio.nombre} - {consultorio.numero}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.inputGroup}>
                   <Text style={styles.label}>Fecha *</Text>
                   <TextInput
                     style={styles.input}
@@ -203,7 +255,7 @@ const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
                     style={styles.input}
                     value={formData.hora}
                     onChangeText={(value) => handleInputChange('hora', value)}
-                    placeholder="HH:MM"
+                    placeholder="HH:MM:SS"
                     placeholderTextColor="#999"
                   />
                 </View>
@@ -212,8 +264,11 @@ const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
                   <Text style={styles.label}>Motivo *</Text>
                   <TextInput
                     style={[styles.input, styles.textArea]}
-                    value={formData.motivo}
-                    onChangeText={(value) => handleInputChange('motivo', value)}
+                    value={formData.motivo_consulta}
+                    onChangeText={(value) => {
+                      console.log("Cambiando motivo_consulta:", value);
+                      handleInputChange('motivo_consulta', value);
+                    }}
                     placeholder="Motivo de la consulta..."
                     placeholderTextColor="#999"
                     multiline
@@ -237,7 +292,7 @@ const EditarCitaModal = ({ visible, onClose, cita, onCitaUpdated }) => {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Estado</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorContainer}>
-                    {['programada', 'confirmada', 'completada', 'cancelada'].map((estado) => (
+                    {['pendiente', 'confirmada', 'completada', 'cancelada'].map((estado) => (
                       <TouchableOpacity
                         key={estado}
                         style={[

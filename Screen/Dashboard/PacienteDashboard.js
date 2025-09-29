@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,13 +8,65 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../src/context/AuthContext";
+import { pacienteService } from "../../src/service/pacienteService";
+import moment from "moment";
+import "moment/locale/es";
+
+moment.locale("es");
 
 export default function PacienteDashboard({ navigation }) {
   const { user, logout } = useAuth();
+  const [proximaCita, setProximaCita] = useState(null);
+  const [loadingCita, setLoadingCita] = useState(true);
+
+  useEffect(() => {
+    loadProximaCita();
+  }, []);
+
+  const loadProximaCita = async () => {
+    try {
+      setLoadingCita(true);
+      console.log('🔍 PacienteDashboard - Cargando próxima cita para paciente:', user?.id);
+      
+      const response = await pacienteService.getMisCitas();
+      
+      if (response.success && response.data && response.data.length > 0) {
+        // Filtrar citas futuras y ordenar por fecha
+        const citasFuturas = response.data
+          .filter(cita => {
+            const fechaCita = moment(cita.fecha);
+            return fechaCita.isAfter(moment()) || 
+                   (fechaCita.isSame(moment(), 'day') && moment(cita.hora, 'HH:mm:ss').isAfter(moment()));
+          })
+          .sort((a, b) => {
+            const fechaA = moment(`${a.fecha} ${a.hora}`);
+            const fechaB = moment(`${b.fecha} ${b.hora}`);
+            return fechaA.diff(fechaB);
+          });
+        
+        if (citasFuturas.length > 0) {
+          setProximaCita(citasFuturas[0]);
+          console.log('📅 Próxima cita encontrada:', citasFuturas[0]);
+        } else {
+          setProximaCita(null);
+          console.log('📅 No hay citas futuras');
+        }
+      } else {
+        setProximaCita(null);
+        console.log('📅 No hay citas disponibles');
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar próxima cita:', error);
+      setProximaCita(null);
+    } finally {
+      setLoadingCita(false);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -35,55 +87,63 @@ export default function PacienteDashboard({ navigation }) {
     );
   };
 
+  const getStatusColor = (estado) => {
+    switch (estado) {
+      case 'completada':
+        return '#4CAF50';
+      case 'confirmada':
+        return '#2196F3';
+      case 'pendiente':
+        return '#FF9800';
+      case 'cancelada':
+        return '#F44336';
+      default:
+        return '#757575';
+    }
+  };
+
   const pacienteActions = [
     {
       title: "Agendar Cita",
       description: "Solicitar nueva cita médica",
       icon: "calendar",
-      color: ["#4facfe", "#00f2fe"],
+      color: ["#667eea", "#764ba2"],
       onPress: () => navigation.navigate("AgendarCita")
     },
     {
       title: "Mis Citas",
       description: "Ver mis citas programadas",
       icon: "list",
-      color: ["#43e97b", "#38f9d7"],
+      color: ["#ff6b6b", "#ee5a24"],
       onPress: () => navigation.navigate("MisCitas")
     },
     {
       title: "Historial Médico",
       description: "Ver mi historial de consultas",
       icon: "document-text",
-      color: ["#fa709a", "#fee140"],
+      color: ["#4ecdc4", "#44a08d"],
       onPress: () => navigation.navigate("Historial")
     },
     {
       title: "Médicos",
       description: "Ver médicos disponibles",
       icon: "medical",
-      color: ["#a8edea", "#fed6e3"],
+      color: ["#45b7d1", "#96c93d"],
       onPress: () => navigation.navigate("Medicos")
     },
     {
       title: "Perfil",
       description: "Actualizar mi información",
       icon: "person",
-      color: ["#ffecd2", "#fcb69f"],
+      color: ["#96ceb4", "#feca57"],
       onPress: () => navigation.navigate("Perfil")
-    },
-    {
-      title: "Emergencias",
-      description: "Contacto de emergencia",
-      icon: "call",
-      color: ["#ff6b6b", "#ee5a24"],
-      onPress: () => navigation.navigate("Emergencias")
     }
   ];
 
   return (
-    <LinearGradient colors={["#4facfe", "#00f2fe"]} style={styles.container}>
+    <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#4facfe" />
+        <StatusBar barStyle="light-content" backgroundColor="#667eea" />
         
         {/* Header */}
         <View style={styles.header}>
@@ -129,23 +189,64 @@ export default function PacienteDashboard({ navigation }) {
           {/* Next Appointment */}
           <View style={styles.appointmentSection}>
             <Text style={styles.appointmentTitle}>Próxima Cita</Text>
-            <View style={styles.appointmentCard}>
-              <View style={styles.appointmentHeader}>
-                <Ionicons name="calendar" size={24} color="#4facfe" />
-                <Text style={styles.appointmentDate}>15 Dic 2024</Text>
-              </View>
-              <View style={styles.appointmentDetails}>
-                <Text style={styles.doctorName}>Dr. Carlos Mendoza</Text>
-                <Text style={styles.specialty}>Cardiología</Text>
-                <Text style={styles.time}>10:30 AM</Text>
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>Confirmada</Text>
+            {loadingCita ? (
+              <View style={styles.appointmentCard}>
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#667eea" />
+                  <Text style={styles.loadingText}>Cargando próxima cita...</Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.viewButton}>
-                <Text style={styles.viewButtonText}>Ver Detalles</Text>
-              </TouchableOpacity>
-            </View>
+            ) : proximaCita ? (
+              <View style={styles.appointmentCard}>
+                <View style={styles.appointmentHeader}>
+                  <Ionicons name="calendar" size={24} color="#667eea" />
+                  <Text style={styles.appointmentDate}>
+                    {moment(proximaCita.fecha).format('DD MMM YYYY')}
+                  </Text>
+                </View>
+                <View style={styles.appointmentDetails}>
+                  <Text style={styles.doctorName}>
+                    Dr. {proximaCita.medico_nombre} {proximaCita.medico_apellido}
+                  </Text>
+                  <Text style={styles.specialty}>
+                    {proximaCita.especialidad_nombre || 'Sin especialidad'}
+                  </Text>
+                  <Text style={styles.time}>
+                    {moment(proximaCita.hora, 'HH:mm:ss').format('HH:mm')}
+                  </Text>
+                  <Text style={styles.motivo}>
+                    Motivo: {proximaCita.motivo_consulta}
+                  </Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(proximaCita.estado) }]}>
+                    <Text style={styles.statusText}>
+                      {proximaCita.estado.charAt(0).toUpperCase() + proximaCita.estado.slice(1)}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity 
+                  style={styles.viewButton}
+                  onPress={() => navigation.navigate("MisCitas")}
+                >
+                  <Text style={styles.viewButtonText}>Ver Todas las Citas</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.appointmentCard}>
+                <View style={styles.noAppointmentContainer}>
+                  <Ionicons name="calendar-outline" size={48} color="#ccc" />
+                  <Text style={styles.noAppointmentText}>No tienes citas programadas</Text>
+                  <Text style={styles.noAppointmentSubtext}>
+                    Agenda una nueva cita médica
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.scheduleButton}
+                    onPress={() => navigation.navigate("AgendarCita")}
+                  >
+                    <Text style={styles.scheduleButtonText}>Agendar Cita</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Health Tips */}
@@ -171,28 +272,6 @@ export default function PacienteDashboard({ navigation }) {
             </View>
           </View>
 
-          {/* Quick Stats */}
-          <View style={styles.statsSection}>
-            <Text style={styles.statsTitle}>Mi Salud</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>3</Text>
-                <Text style={styles.statLabel}>Citas Este Mes</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Última Consulta</Text>
-                <Text style={styles.statNumber}>2 días</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>5</Text>
-                <Text style={styles.statLabel}>Médicos</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>12</Text>
-                <Text style={styles.statLabel}>Historial</Text>
-              </View>
-            </View>
-          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -339,7 +418,7 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 16,
-    color: "#4facfe",
+    color: "#667eea",
     fontWeight: "bold",
   },
   statusBadge: {
@@ -356,7 +435,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   viewButton: {
-    backgroundColor: "#4facfe",
+    backgroundColor: "#667eea",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 25,
@@ -403,42 +482,47 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     lineHeight: 20,
   },
-  statsSection: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 30,
-  },
-  statsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-    marginBottom: 15,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 10,
-    padding: 15,
+  loadingContainer: {
     alignItems: "center",
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
+  },
+  motivo: {
+    fontSize: 14,
+    color: "#666",
     marginBottom: 10,
+    fontStyle: "italic",
   },
-  statNumber: {
-    fontSize: 24,
+  noAppointmentContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  noAppointmentText: {
+    fontSize: 18,
+    color: "#666",
+    marginTop: 15,
     fontWeight: "bold",
-    color: "#fff",
   },
-  statLabel: {
-    fontSize: 12,
-    color: "#fff",
-    opacity: 0.8,
+  noAppointmentSubtext: {
+    fontSize: 14,
+    color: "#999",
     marginTop: 5,
     textAlign: "center",
+  },
+  scheduleButton: {
+    backgroundColor: "#667eea",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    marginTop: 15,
+  },
+  scheduleButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

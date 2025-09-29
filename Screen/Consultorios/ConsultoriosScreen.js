@@ -15,13 +15,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { consultoriosService } from '../service/consultoriosService';
 import CrearConsultorioModal from '../../src/components/CrearConsultorioModal';
 import EditarConsultorioModal from '../../src/components/EditarConsultorioModal';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function ConsultoriosScreen({ navigation }) {
+  const { userType } = useAuth();
   const [consultorios, setConsultorios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCrearModal, setShowCrearModal] = useState(false);
   const [showEditarModal, setShowEditarModal] = useState(false);
   const [consultorioEditando, setConsultorioEditando] = useState(null);
+
+  // Determinar si el usuario es administrador
+  const isAdmin = userType === 'admin';
 
   useEffect(() => {
     loadConsultorios();
@@ -90,8 +95,8 @@ export default function ConsultoriosScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={["#e0f7ff", "#f9fbfd"]} style={{ flex: 1 }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#e0f7ff" />
+    <LinearGradient colors={["#667eea", "#764ba2"]} style={{ flex: 1 }}>
+      <StatusBar barStyle="light-content" backgroundColor="#667eea" />
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity 
@@ -100,13 +105,26 @@ export default function ConsultoriosScreen({ navigation }) {
           >
             <Ionicons name="arrow-back" size={24} color="#1976D2" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Consultorios</Text>
+          <Text style={styles.headerTitle}>
+            {isAdmin ? 'Gestión de Consultorios' : 'Consultorios Disponibles'}
+          </Text>
           <View style={styles.placeholder} />
         </View>
 
         <View style={styles.content}>
+          {!isAdmin && (
+            <View style={styles.infoBanner}>
+              <Ionicons name="information-circle" size={20} color="#1976D2" />
+              <Text style={styles.infoBannerText}>
+                Solo puedes visualizar los consultorios disponibles. Para crear o editar consultorios, contacta al administrador.
+              </Text>
+            </View>
+          )}
+          
           <View style={styles.infoCard}>
-            <Text style={styles.cardTitle}>Consultorios Disponibles</Text>
+            <Text style={styles.cardTitle}>
+              {isAdmin ? 'Lista de Consultorios' : 'Consultorios Disponibles'}
+            </Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               {loading ? (
                 <ActivityIndicator size="large" color="#1976D2" />
@@ -120,31 +138,35 @@ export default function ConsultoriosScreen({ navigation }) {
                       <Text style={styles.consultorioSubtext}>{consultorio.ubicacion}</Text>
                       <Text style={styles.consultorioSubtext}>Tel: {consultorio.telefono}</Text>
                     </View>
-                    <View style={styles.consultorioActions}>
-                      <TouchableOpacity 
-                        style={styles.editButton}
-                        onPress={() => handleEditConsultorio(consultorio)}
-                      >
-                        <Ionicons name="pencil" size={20} color="#1976D2" />
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.deleteButton}
-                        onPress={() => handleDeleteConsultorio(consultorio)}
-                      >
-                        <Ionicons name="trash" size={20} color="#e74c3c" />
-                      </TouchableOpacity>
-                    </View>
+                    {isAdmin && (
+                      <View style={styles.consultorioActions}>
+                        <TouchableOpacity 
+                          style={styles.editButton}
+                          onPress={() => handleEditConsultorio(consultorio)}
+                        >
+                          <Ionicons name="pencil" size={20} color="#1976D2" />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.deleteButton}
+                          onPress={() => handleDeleteConsultorio(consultorio)}
+                        >
+                          <Ionicons name="trash" size={20} color="#e74c3c" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 ))
               )}
             </ScrollView>
           </View>
 
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleAddConsultorio}>
-              <Text style={styles.actionText}>Agregar Consultorio</Text>
-            </TouchableOpacity>
-          </View>
+          {isAdmin && (
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity style={styles.actionButton} onPress={handleAddConsultorio}>
+                <Text style={styles.actionText}>Agregar Consultorio</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </SafeAreaView>
       
@@ -178,9 +200,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   backButton: {
     padding: 8,
@@ -188,7 +210,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1976D2',
+    color: '#fff',
   },
   placeholder: {
     width: 40,
@@ -196,6 +218,23 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+  },
+  infoBanner: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: '#fff',
+  },
+  infoBannerText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#fff',
+    marginLeft: 10,
+    lineHeight: 20,
   },
   infoCard: {
     backgroundColor: '#fff',
@@ -211,7 +250,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: '#667eea',
     marginBottom: 15,
   },
   noConsultoriosText: {
@@ -264,7 +303,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionButton: {
-    backgroundColor: '#1976D2',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
@@ -273,6 +312,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   actionText: {
     color: '#fff',

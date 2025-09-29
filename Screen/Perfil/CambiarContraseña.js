@@ -12,9 +12,12 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../../src/context/AuthContext";
+import api from "../../src/service/conexion";
 import { profileService } from "../../src/service/ApiService";
 
 export default function CambiarContraseñaScreen({ navigation }) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -29,7 +32,7 @@ export default function CambiarContraseñaScreen({ navigation }) {
     }));
   };
 
-  const handleSubmit = async () => {
+    const handleSubmit = async () => {
     if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
       Alert.alert("Error", "Todos los campos son obligatorios");
       return;
@@ -47,11 +50,24 @@ export default function CambiarContraseñaScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // Por ahora, solo simulamos el cambio de contraseña
-      // En el futuro, cuando el backend esté listo, se puede usar profileService.changePassword()
+      console.log('🔍 Debug - Usuario actual:', user);
+      console.log('🔍 Debug - Tipo de usuario:', user?.tipo);
       
-      // Simular validación de contraseña actual
-      if (formData.currentPassword === "123456") {
+      // Validar contraseña actual enviando al backend
+      const validationData = {
+        email: user?.email,
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+        user_id: user?.id,
+        user_type: user?.tipo || 'paciente'
+      };
+
+      console.log('📤 Enviando datos de validación:', validationData);
+
+      // Llamar al endpoint de cambio de contraseña
+      const response = await api.put('/profile/change-password', validationData);
+      
+      if (response.data.success) {
         Alert.alert("✅ Éxito", "Contraseña cambiada correctamente", [
           {
             text: "OK",
@@ -67,12 +83,23 @@ export default function CambiarContraseñaScreen({ navigation }) {
           }
         ]);
       } else {
-        Alert.alert("❌ Error", "La contraseña actual es incorrecta");
+        Alert.alert("❌ Error", response.data.message || "Error al cambiar la contraseña");
       }
       
     } catch (error) {
-      console.error("Error al cambiar contraseña:", error);
-      Alert.alert("❌ Error", "Error inesperado al cambiar la contraseña");
+      console.error("❌ Error al cambiar contraseña:", error);
+      console.error("❌ Error response:", error.response?.data);
+      console.error("❌ Error status:", error.response?.status);
+      
+      if (error.response?.status === 401) {
+        Alert.alert("❌ Error", "La contraseña actual es incorrecta");
+      } else if (error.response?.status === 422) {
+        Alert.alert("❌ Error", "Datos inválidos: " + (error.response.data?.message || "Verifica los campos"));
+      } else if (error.response?.status === 500) {
+        Alert.alert("❌ Error", "Error del servidor: " + (error.response.data?.message || "Inténtalo más tarde"));
+      } else {
+        Alert.alert("❌ Error", "Error inesperado: " + (error.message || "Error de conexión"));
+      }
     } finally {
       setLoading(false);
     }

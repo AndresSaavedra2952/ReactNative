@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -12,9 +12,16 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../src/context/AuthContext";
+import EstadisticasDashboard from "../../src/components/EstadisticasDashboard";
 
 export default function AdminDashboard({ navigation }) {
   const { user, logout } = useAuth();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Función para forzar actualización de estadísticas
+  const triggerStatsRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -37,6 +44,13 @@ export default function AdminDashboard({ navigation }) {
 
   const adminActions = [
     {
+      title: "Gestión de Administradores",
+      description: "Crear, editar y eliminar administradores",
+      icon: "shield-checkmark",
+      color: ["#667eea", "#764ba2"],
+      onPress: () => navigation.navigate("Administradores")
+    },
+    {
       title: "Gestión de Médicos",
       description: "Crear, editar y eliminar médicos",
       icon: "medical",
@@ -47,28 +61,28 @@ export default function AdminDashboard({ navigation }) {
       title: "Gestión de Pacientes",
       description: "Administrar pacientes del sistema",
       icon: "people",
-      color: ["#43e97b", "#38f9d7"],
+      color: ["#ff6b6b", "#ee5a24"],
       onPress: () => navigation.navigate("Pacientes")
     },
     {
       title: "Especialidades",
       description: "Gestionar especialidades médicas",
       icon: "library",
-      color: ["#fa709a", "#fee140"],
+      color: ["#4ecdc4", "#44a08d"],
       onPress: () => navigation.navigate("Especialidades")
     },
     {
       title: "EPS",
       description: "Administrar entidades de salud",
       icon: "business",
-      color: ["#a8edea", "#fed6e3"],
+      color: ["#45b7d1", "#96c93d"],
       onPress: () => navigation.navigate("Eps")
     },
     {
       title: "Consultorios",
       description: "Gestionar consultorios médicos",
       icon: "home",
-      color: ["#ffecd2", "#fcb69f"],
+      color: ["#96ceb4", "#feca57"],
       onPress: () => navigation.navigate("Consultorios")
     },
     {
@@ -92,9 +106,17 @@ export default function AdminDashboard({ navigation }) {
               <Text style={styles.welcomeText}>Bienvenido, Administrador</Text>
               <Text style={styles.userName}>{user?.nombre} {user?.apellido}</Text>
             </View>
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <Ionicons name="log-out-outline" size={24} color="#fff" />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity 
+                onPress={triggerStatsRefresh} 
+                style={styles.refreshButton}
+              >
+                <Ionicons name="refresh" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                <Ionicons name="log-out-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -104,6 +126,11 @@ export default function AdminDashboard({ navigation }) {
           <Text style={styles.sectionSubtitle}>
             Gestiona todos los aspectos del sistema médico
           </Text>
+
+          {/* Estadísticas */}
+          <View style={styles.estadisticasContainer}>
+            <EstadisticasDashboard refreshTrigger={refreshTrigger} />
+          </View>
 
           <View style={styles.actionsGrid}>
             {adminActions.map((action, index) => (
@@ -124,29 +151,6 @@ export default function AdminDashboard({ navigation }) {
               </TouchableOpacity>
             ))}
           </View>
-
-          {/* Stats Section */}
-          <View style={styles.statsSection}>
-            <Text style={styles.statsTitle}>Estadísticas Rápidas</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>--</Text>
-                <Text style={styles.statLabel}>Médicos</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>--</Text>
-                <Text style={styles.statLabel}>Pacientes</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>--</Text>
-                <Text style={styles.statLabel}>Citas Hoy</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>--</Text>
-                <Text style={styles.statLabel}>Especialidades</Text>
-              </View>
-            </View>
-          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -166,6 +170,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   userInfo: {
     flex: 1,
@@ -243,41 +257,18 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     lineHeight: 16,
   },
-  statsSection: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 30,
-  },
-  statsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-    marginBottom: 15,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 10,
-    padding: 15,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#fff",
-    opacity: 0.8,
-    marginTop: 5,
+  estadisticasContainer: {
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });

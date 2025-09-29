@@ -13,24 +13,44 @@ import PacientesScreen from "../../Screen/Pacientes/PacientesScreen";
 import MedicosScreen from "../../Screen/Medicos/MedicosScreen";
 import EspecialidadesScreen from "../../Screen/Especialidades/EspecialidadesScreen";
 import ConsultoriosScreen from "../../Screen/Consultorios/ConsultoriosScreen";
+import AdministradoresScreen from "../../Screen/Administradores/AdministradoresScreen";
 import EpsScreen from "../../Screen/Eps/EpsScreen";
 import PerfilScreen from "../../Screen/Perfil/PerfilScreen";
+
+// Screens específicas para médicos
+import MisCitasMedico from "../../Screen/Medico/MisCitasMedico";
+import MiAgendaMedico from "../../Screen/Medico/MiAgendaMedico";
+import ReportesMedico from "../../Screen/Medico/ReportesMedico";
+import HistorialMedico from "../../Screen/Medico/HistorialMedico";
+
+// Screens específicas para pacientes
+import AgendarCitaPaciente from "../../Screen/Paciente/AgendarCitaPaciente";
+import MisCitasPaciente from "../../Screen/Paciente/MisCitasPaciente";
+import HistorialPaciente from "../../Screen/Paciente/HistorialPaciente";
 
 const Stack = createNativeStackNavigator();
 
 export default function DashboardRouter() {
-  const { userType } = useAuth();
+  const { userType, user } = useAuth();
+
+  console.log('DashboardRouter - userType:', userType);
+  console.log('DashboardRouter - user:', user);
 
   // Función para obtener el dashboard según el tipo de usuario
   const getDashboardComponent = () => {
+    console.log('getDashboardComponent - userType:', userType);
     switch (userType) {
       case 'admin':
+        console.log('Retornando AdminDashboard');
         return AdminDashboard;
       case 'medico':
+        console.log('Retornando MedicoDashboard');
         return MedicoDashboard;
       case 'paciente':
+        console.log('Retornando PacienteDashboard');
         return PacienteDashboard;
       default:
+        console.log('Retornando PacienteDashboard por defecto');
         return PacienteDashboard; // Por defecto
     }
   };
@@ -92,6 +112,19 @@ export default function DashboardRouter() {
       />
       
       <Stack.Screen 
+        name="Administradores" 
+        component={AdministradoresScreen}
+        options={{ title: "Administradores" }}
+      />
+      
+      {/* Rutas específicas para médicos */}
+      <Stack.Screen 
+        name="MisCitas" 
+        component={userType === 'medico' ? MisCitasMedico : MisCitasPaciente}
+        options={{ title: "Mis Citas" }}
+      />
+      
+      <Stack.Screen 
         name="Perfil" 
         component={PerfilScreen}
         options={{ title: "Mi Perfil" }}
@@ -101,7 +134,7 @@ export default function DashboardRouter() {
       {userType === 'medico' && (
         <>
           <Stack.Screen 
-            name="MisCitas" 
+            name="MisCitasMedico" 
             component={CitasScreen}
             options={{ title: "Mis Citas" }}
           />
@@ -112,7 +145,7 @@ export default function DashboardRouter() {
           />
           <Stack.Screen 
             name="Agenda" 
-            component={CitasScreen}
+            component={MiAgendaMedico}
             options={{ title: "Mi Agenda" }}
           />
           <Stack.Screen 
@@ -122,8 +155,13 @@ export default function DashboardRouter() {
           />
           <Stack.Screen 
             name="Reportes" 
-            component={CitasScreen}
+            component={ReportesMedico}
             options={{ title: "Reportes" }}
+          />
+          <Stack.Screen 
+            name="HistorialMedico" 
+            component={HistorialMedico}
+            options={{ title: "Historial Médico" }}
           />
         </>
       )}
@@ -133,18 +171,18 @@ export default function DashboardRouter() {
         <>
           <Stack.Screen 
             name="AgendarCita" 
-            component={CitasScreen}
+            component={AgendarCitaPaciente}
             options={{ title: "Agendar Cita" }}
           />
           <Stack.Screen 
-            name="MisCitas" 
+            name="MisCitasPaciente" 
             component={CitasScreen}
             options={{ title: "Mis Citas" }}
           />
           <Stack.Screen 
             name="Historial" 
-            component={CitasScreen}
-            options={{ title: "Historial Médico" }}
+            component={HistorialPaciente}
+            options={{ title: "Mi Historial Médico" }}
           />
           <Stack.Screen 
             name="Emergencias" 

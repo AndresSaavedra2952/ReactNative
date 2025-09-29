@@ -32,7 +32,7 @@ export default function LoginScreen({ navigation }) {
       const result = await login(email, password);
       
       if (result.success) {
-        Alert.alert("✅ Éxito", `Bienvenido ${result.user.nombre}`);
+        Alert.alert("✅ Éxito", `Bienvenido, ${result.userType === 'admin' ? 'Administrador' : result.userType === 'medico' ? 'Doctor' : 'Paciente'}`);
         // La navegación se maneja automáticamente por el AuthContext
         // No necesitamos navegar manualmente aquí
       } else {
@@ -47,16 +47,23 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={["#dff6ff", "#f9fbfd"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#667eea", "#764ba2"]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#1976D2" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         
         <ScrollView contentContainerStyle={styles.container}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logoIcon}>
+              <Ionicons name="calendar" size={40} color="#fff" />
+            </View>
+            <Text style={styles.logoText}>Citas_ADSO</Text>
+          </View>
+          
           <Text style={styles.heading}>Bienvenido</Text>
           <Text style={styles.subheading}>Inicia sesión para continuar</Text>
 
@@ -102,7 +109,7 @@ export default function LoginScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
           <Text style={styles.registerLink}>
             ¿No tienes cuenta?{" "}
-            <Text style={{ color: "#007aff", fontWeight: "bold" }}>
+            <Text style={{ color: "#fff", fontWeight: "bold" }}>
               Crear cuenta
             </Text>
           </Text>
@@ -119,9 +126,27 @@ const styles = StyleSheet.create({
     top: 50,
     left: 20,
     zIndex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 20,
     padding: 8,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  logoIcon: {
+    width: 80,
+    height: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+  },
+  logoText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#fff",
   },
   container: {
     flexGrow: 1,
@@ -132,13 +157,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "900",
     fontSize: 32,
-    color: "#007aff",
+    color: "#fff",
     marginBottom: 10,
   },
   subheading: {
     textAlign: "center",
     fontSize: 16,
-    color: "#666",
+    color: "#fff",
+    opacity: 0.9,
     marginBottom: 30,
   },
   form: {
@@ -146,15 +172,15 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     padding: 15,
     borderRadius: 15,
     marginTop: 15,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "rgba(255, 255, 255, 0.3)",
     fontSize: 16,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
   },
@@ -164,8 +190,9 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     fontSize: 14,
-    color: "#007aff",
+    color: "#fff",
     textAlign: "right",
+    opacity: 0.8,
   },
   loginButton: {
     padding: 15,
@@ -173,9 +200,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 5,
   },
   loginButtonDisabled: {
     opacity: 0.6,
@@ -189,6 +216,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
     marginTop: 25,
-    color: "#444",
+    color: "#fff",
+    opacity: 0.9,
   },
 });

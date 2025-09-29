@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -24,11 +24,34 @@ export default function RegisterScreen({ navigation }) {
   const [tipoDocumento, setTipoDocumento] = useState("");
   const [numeroDocumento, setNumeroDocumento] = useState("");
   const [direccion, setDireccion] = useState("");
+  const [epsId, setEpsId] = useState(null);
+  const [epsList, setEpsList] = useState([]);
+  const [loadingEps, setLoadingEps] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Cargar lista de EPS al montar el componente
+  useEffect(() => {
+    loadEps();
+  }, []);
+
+  const loadEps = async () => {
+    try {
+      setLoadingEps(true);
+      const response = await api.get('/eps');
+      if (response.data.success) {
+        setEpsList(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error al cargar EPS:', error);
+      Alert.alert('Error', 'No se pudieron cargar las EPS disponibles');
+    } finally {
+      setLoadingEps(false);
+    }
+  };
+
   const handleRegister = async () => {
-    if (!nombre || !apellido || !email || !telefono || !password || !fechaNacimiento || !tipoDocumento || !numeroDocumento || !direccion) {
-      Alert.alert("Error", "Todos los campos son obligatorios");
+    if (!nombre || !apellido || !email || !telefono || !password || !fechaNacimiento || !tipoDocumento || !numeroDocumento || !direccion || !epsId) {
+      Alert.alert("Error", "Todos los campos son obligatorios, incluyendo la EPS");
       return;
     }
 
@@ -44,6 +67,7 @@ export default function RegisterScreen({ navigation }) {
       tipo_documento: tipoDocumento,
       numero_documento: numeroDocumento,
       direccion,
+      eps_id: epsId,
       activo: 1
     };
 
@@ -78,7 +102,7 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <LinearGradient
-      colors={["#e0f7ff", "#f9fbfd"]}
+      colors={["#667eea", "#764ba2"]}
       style={{ flex: 1 }}
     >
       <SafeAreaView style={{ flex: 1 }}>
@@ -86,10 +110,17 @@ export default function RegisterScreen({ navigation }) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#1976D2" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         
         <ScrollView contentContainerStyle={styles.container}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logoIcon}>
+              <Ionicons name="calendar" size={40} color="#fff" />
+            </View>
+            <Text style={styles.logoText}>Citas_ADSO</Text>
+          </View>
+          
           <Text style={styles.heading}>Registro de Paciente</Text>
           <Text style={styles.subheading}>Completa tus datos para crear tu cuenta</Text>
 
@@ -154,6 +185,42 @@ export default function RegisterScreen({ navigation }) {
             value={direccion}
             onChangeText={setDireccion}
           />
+
+          {/* Selector de EPS */}
+          <View style={styles.epsSection}>
+            <Text style={styles.epsLabel}>Selecciona tu EPS:</Text>
+            {loadingEps ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#007aff" />
+                <Text style={styles.loadingText}>Cargando EPS...</Text>
+              </View>
+            ) : (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.epsScrollView}
+              >
+                {epsList.map((eps) => (
+                  <TouchableOpacity
+                    key={eps.id}
+                    style={[
+                      styles.epsItem,
+                      epsId === eps.id && styles.epsItemSelected
+                    ]}
+                    onPress={() => setEpsId(eps.id)}
+                  >
+                    <Text style={[
+                      styles.epsItemText,
+                      epsId === eps.id && styles.epsItemTextSelected
+                    ]}>
+                      {eps.nombre}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+
           <TextInput
             style={styles.input}
             placeholder="Contraseña"
@@ -180,7 +247,7 @@ export default function RegisterScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={styles.loginLink}>
             ¿Ya tienes cuenta?{" "}
-            <Text style={{ color: "#007aff", fontWeight: "bold" }}>
+            <Text style={{ color: "#fff", fontWeight: "bold" }}>
               Inicia sesión
             </Text>
           </Text>
@@ -197,9 +264,27 @@ const styles = StyleSheet.create({
     top: 50,
     left: 20,
     zIndex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 20,
     padding: 8,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  logoIcon: {
+    width: 80,
+    height: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+  },
+  logoText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#fff",
   },
   container: {
     flexGrow: 1,
@@ -209,14 +294,15 @@ const styles = StyleSheet.create({
   heading: {
     textAlign: "center",
     fontWeight: "900",
-    fontSize: 32,
-    color: "#007aff",
+    fontSize: 28,
+    color: "#fff",
     marginBottom: 10,
   },
   subheading: {
     textAlign: "center",
     fontSize: 16,
-    color: "#666",
+    color: "#fff",
+    opacity: 0.9,
     marginBottom: 30,
   },
   form: {
@@ -224,15 +310,15 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     padding: 15,
     borderRadius: 15,
     marginTop: 15,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "rgba(255, 255, 255, 0.3)",
     fontSize: 16,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
   },
@@ -242,9 +328,9 @@ const styles = StyleSheet.create({
     marginTop: 25,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 5,
   },
   registerButtonDisabled: {
     opacity: 0.6,
@@ -258,6 +344,53 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
     marginTop: 20,
-    color: "#555",
+    color: "#fff",
+    opacity: 0.9,
+  },
+  epsSection: {
+    marginTop: 15,
+  },
+  epsLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+    marginBottom: 10,
+  },
+  epsScrollView: {
+    maxHeight: 60,
+  },
+  epsItem: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  epsItemSelected: {
+    backgroundColor: "#fff",
+    borderColor: "#fff",
+  },
+  epsItemText: {
+    fontSize: 14,
+    color: "#fff",
+    fontWeight: "500",
+  },
+  epsItemTextSelected: {
+    color: "#667eea",
+    fontWeight: "bold",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#fff",
+    opacity: 0.8,
   },
 });
